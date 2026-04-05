@@ -22,13 +22,17 @@
     }
 
     :root {
-      --sky-bg: #01011a;
-      --accent: #6eccff;
-      --accent2: #7c6dfa;
-      --text-primary: #e8f0fe;
-      --text-muted: rgba(180, 210, 240, 0.65);
-      --card-bg: rgba(8, 20, 50, 0.65);
-      --card-border: rgba(100, 180, 255, 0.12);
+      --sky-bg: #0d0d0f;
+      --accent: #d6c2a1;
+      --accent2: #8a745c;
+      --text-primary: #f5f1e8;
+      --text-muted: rgba(222, 214, 200, 0.66);
+      --card-bg: rgba(24, 24, 27, 0.74);
+      --card-border: rgba(214, 194, 161, 0.14);
+      --line-soft: rgba(214, 194, 161, 0.1);
+      --surface-strong: rgba(27, 27, 31, 0.9);
+      --surface-soft: rgba(245, 241, 232, 0.05);
+      --success: #91c58a;
     }
 
     html {
@@ -37,7 +41,9 @@
 
     body {
       font-family: 'Inter', system-ui, sans-serif;
-      background: var(--sky-bg);
+      background:
+        radial-gradient(circle at top, rgba(214, 194, 161, 0.1), transparent 30%),
+        linear-gradient(180deg, #0d0d0f 0%, #101013 55%, #0a0a0c 100%);
       color: var(--text-primary);
       overflow-x: hidden;
     }
@@ -54,10 +60,10 @@
       justify-content: space-between;
       padding: 0 clamp(16px, 4vw, 48px);
       height: 60px;
-      background: rgba(1, 1, 26, 0.55);
+      background: rgba(13, 13, 15, 0.62);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
-      border-bottom: 1px solid rgba(100, 200, 255, 0.08);
+      border-bottom: 1px solid var(--line-soft);
     }
 
     #nav .brand {
@@ -95,8 +101,8 @@
     }
 
     #nav .links .cta-nav {
-      background: linear-gradient(135deg, var(--accent2), var(--accent));
-      color: #fff !important;
+      background: linear-gradient(135deg, #7b6853, #d6c2a1);
+      color: #140f0a !important;
       padding: 7px 18px;
       border-radius: 20px;
       font-size: 13px !important;
@@ -112,8 +118,8 @@
       bottom: 28px;
       right: 28px;
       z-index: 10;
-      background: rgba(8, 20, 50, 0.6);
-      border: 1px solid rgba(100, 180, 255, 0.22);
+      background: rgba(24, 24, 27, 0.72);
+      border: 1px solid rgba(214, 194, 161, 0.2);
       border-radius: 50%;
       padding: 11px;
       cursor: pointer;
@@ -128,8 +134,8 @@
 
     #music-btn:hover {
       color: var(--accent);
-      border-color: rgba(110, 204, 255, 0.5);
-      background: rgba(8, 20, 50, 0.85);
+      border-color: rgba(214, 194, 161, 0.42);
+      background: rgba(24, 24, 27, 0.92);
     }
 
     #music-btn svg {
@@ -173,8 +179,8 @@
       font-weight: 700;
       letter-spacing: .22em;
       text-transform: uppercase;
-      color: rgba(215, 238, 255, 0.88);
-      text-shadow: 0 0 18px rgba(110, 204, 255, 0.65), 0 0 40px rgba(136, 117, 255, 0.4);
+      color: rgba(245, 241, 232, 0.82);
+      text-shadow: 0 0 18px rgba(214, 194, 161, 0.2);
       pointer-events: none;
       white-space: nowrap;
     }
@@ -194,9 +200,9 @@
       text-transform: uppercase;
       padding: 4px 12px;
       border-radius: 20px;
-      border: 1px solid rgba(100, 200, 255, .25);
+      border: 1px solid rgba(214, 194, 161, .24);
       color: var(--accent);
-      background: rgba(100, 200, 255, .06);
+      background: rgba(214, 194, 161, .06);
     }
 
     .hero-intro h1 {
@@ -204,7 +210,7 @@
       font-weight: 800;
       line-height: 1.1;
       letter-spacing: -.03em;
-      background: linear-gradient(135deg, #fff 0%, #a8d8ff 40%, #7c6dfa 80%, #6eccff 100%);
+      background: linear-gradient(180deg, #f8f5ee 0%, #e8dbc7 52%, #b89f7f 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
@@ -242,14 +248,14 @@
       align-items: center;
       gap: 8px;
       padding: 13px 28px;
-      background: linear-gradient(135deg, var(--accent2), var(--accent));
-      color: #fff;
+      background: linear-gradient(135deg, #806a54, #d6c2a1);
+      color: #140f0a;
       border-radius: 28px;
       font-size: 15px;
       font-weight: 600;
       text-decoration: none;
       transition: transform .2s, opacity .2s;
-      box-shadow: 0 4px 24px rgba(124, 109, 250, .45);
+      box-shadow: 0 14px 40px rgba(0, 0, 0, .32);
     }
 
     .btn-primary:hover {
@@ -262,8 +268,8 @@
       align-items: center;
       gap: 8px;
       padding: 12px 26px;
-      background: rgba(100, 200, 255, .08);
-      border: 1px solid rgba(100, 200, 255, .22);
+      background: rgba(245, 241, 232, .04);
+      border: 1px solid rgba(214, 194, 161, .22);
       color: var(--accent);
       border-radius: 28px;
       font-size: 15px;
@@ -273,7 +279,7 @@
     }
 
     .btn-secondary:hover {
-      background: rgba(100, 200, 255, .14);
+      background: rgba(214, 194, 161, .1);
       transform: translateY(-2px);
     }
 
@@ -287,7 +293,7 @@
       flex-direction: column;
       align-items: center;
       gap: 6px;
-      color: rgba(120, 180, 255, .45);
+      color: rgba(214, 194, 161, .42);
       font-size: 11px;
       letter-spacing: .1em;
       text-transform: uppercase;
@@ -322,7 +328,7 @@
     #logo-float svg {
       width: 220px;
       height: 220px;
-      filter: drop-shadow(0 0 7px rgba(136, 117, 255, .5)) drop-shadow(0 0 18px rgba(100, 200, 255, .2));
+      filter: drop-shadow(0 0 18px rgba(214, 194, 161, .18));
     }
 
     #logo-reflection {
@@ -332,7 +338,7 @@
       transform: translateX(-50%);
       width: 180px;
       height: 55px;
-      background: radial-gradient(ellipse, rgba(136, 117, 255, .22) 0%, transparent 70%);
+      background: radial-gradient(ellipse, rgba(214, 194, 161, .2) 0%, transparent 70%);
       filter: blur(7px);
       pointer-events: none;
     }
@@ -357,10 +363,7 @@
     }
 
     .section-title span {
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: var(--accent);
     }
 
     .section-sub {
@@ -373,7 +376,7 @@
 
     .ocean-divider {
       height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(100, 200, 255, .15), transparent);
+      background: linear-gradient(90deg, transparent, rgba(214, 194, 161, .16), transparent);
     }
 
     /* FEATURES */
@@ -407,17 +410,17 @@
     }
 
     .feat-card:hover {
-      border-color: rgba(100, 200, 255, .28);
+      border-color: rgba(214, 194, 161, .28);
       transform: translateY(-4px);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, .35), 0 0 20px rgba(100, 200, 255, .06);
+      box-shadow: 0 20px 44px rgba(0, 0, 0, .3);
     }
 
     .feat-icon {
       width: 44px;
       height: 44px;
       border-radius: 12px;
-      background: linear-gradient(135deg, rgba(124, 109, 250, .25), rgba(110, 204, 255, .15));
-      border: 1px solid rgba(124, 109, 250, .3);
+      background: linear-gradient(135deg, rgba(214, 194, 161, .18), rgba(138, 116, 92, .16));
+      border: 1px solid rgba(214, 194, 161, .2);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -440,9 +443,9 @@
 
     /* HOW IT WORKS */
     #how {
-      background: rgba(4, 12, 34, .5);
-      border-top: 1px solid rgba(100, 200, 255, .06);
-      border-bottom: 1px solid rgba(100, 200, 255, .06);
+      background: rgba(18, 18, 21, .72);
+      border-top: 1px solid var(--line-soft);
+      border-bottom: 1px solid var(--line-soft);
     }
 
     #how-inner {
@@ -456,43 +459,103 @@
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 32px;
       margin-top: 48px;
+      position: relative;
+      align-items: stretch;
+    }
+
+    .steps::before {
+      content: '';
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      top: 18px;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(214, 194, 161, 0.28), rgba(214, 194, 161, 0.08));
+      pointer-events: none;
     }
 
     .step {
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 18px;
+      min-height: 100%;
+      padding: 24px;
+      border-radius: 22px;
+      border: 1px solid rgba(214, 194, 161, 0.12);
+      background:
+        linear-gradient(180deg, rgba(245, 241, 232, 0.045), rgba(245, 241, 232, 0.02)),
+        rgba(14, 14, 17, 0.8);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      position: relative;
+      overflow: hidden;
+      transition: transform .28s ease, border-color .28s ease, background .28s ease, box-shadow .28s ease;
+    }
+
+    .step::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top left, rgba(214, 194, 161, 0.12), transparent 42%);
+      opacity: 0.9;
+      pointer-events: none;
+    }
+
+    .step:hover {
+      transform: translateY(-6px);
+      border-color: rgba(214, 194, 161, 0.24);
+      box-shadow: 0 22px 48px rgba(0, 0, 0, 0.28);
+    }
+
+    .step-header {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid rgba(214, 194, 161, 0.08);
     }
 
     .step-num {
-      width: 36px;
-      height: 36px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      background: linear-gradient(135deg, #7b6853, #d6c2a1);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 800;
-      color: #fff;
+      color: #140f0a;
       flex-shrink: 0;
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
+    }
+
+    .step-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-width: 0;
     }
 
     .step-title {
-      font-size: 17px;
+      font-size: 18px;
       font-weight: 700;
       color: var(--text-primary);
+      letter-spacing: -.02em;
     }
 
     .step-desc {
       font-size: 14px;
       color: var(--text-muted);
       line-height: 1.6;
+      position: relative;
+      z-index: 1;
     }
 
     .code-block {
-      background: rgba(1, 6, 20, .8);
-      border: 1px solid rgba(100, 200, 255, .12);
+      background: rgba(14, 14, 17, .92);
+      border: 1px solid rgba(214, 194, 161, .12);
       border-radius: 10px;
       padding: 14px 18px;
       font-family: 'JetBrains Mono', 'Courier New', monospace;
@@ -501,6 +564,7 @@
       margin-top: 4px;
       position: relative;
       overflow: hidden;
+      z-index: 1;
     }
 
     .code-block::before {
@@ -510,12 +574,12 @@
       top: 0;
       bottom: 0;
       width: 3px;
-      background: linear-gradient(180deg, var(--accent2), var(--accent));
+      background: linear-gradient(180deg, #7b6853, #d6c2a1);
       border-radius: 10px 0 0 10px;
     }
 
     .code-comment {
-      color: rgba(120, 160, 200, .5);
+      color: rgba(180, 170, 154, .56);
       font-size: 12px;
       margin-bottom: 4px;
     }
@@ -532,8 +596,8 @@
       display: inline-flex;
       align-items: center;
       gap: 16px;
-      background: rgba(1, 6, 20, .85);
-      border: 1px solid rgba(100, 200, 255, .18);
+      background: rgba(14, 14, 17, .94);
+      border: 1px solid rgba(214, 194, 161, .16);
       border-radius: 14px;
       padding: 16px 24px;
       margin: 32px 0 36px;
@@ -543,13 +607,13 @@
     }
 
     .install-box .prompt {
-      color: rgba(120, 160, 200, .5);
+      color: rgba(180, 170, 154, .56);
       user-select: none;
     }
 
     .copy-btn {
-      background: rgba(100, 200, 255, .1);
-      border: 1px solid rgba(100, 200, 255, .2);
+      background: rgba(214, 194, 161, .08);
+      border: 1px solid rgba(214, 194, 161, .18);
       color: var(--accent);
       padding: 6px 14px;
       border-radius: 8px;
@@ -562,12 +626,12 @@
     }
 
     .copy-btn:hover {
-      background: rgba(100, 200, 255, .18);
+      background: rgba(214, 194, 161, .14);
     }
 
     .copy-btn.copied {
-      color: #5effa0;
-      border-color: rgba(94, 255, 160, .3);
+      color: var(--success);
+      border-color: rgba(145, 197, 138, .32);
     }
 
     #install .hero-btns {
@@ -576,19 +640,19 @@
 
     /* FOOTER */
     footer {
-      border-top: 1px solid rgba(100, 200, 255, .07);
+      border-top: 1px solid var(--line-soft);
       padding: 32px clamp(16px, 8vw, 80px);
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 16px;
-      color: rgba(120, 160, 200, .45);
+      color: rgba(180, 170, 154, .44);
       font-size: 12px;
     }
 
     footer a {
-      color: rgba(120, 160, 200, .6);
+      color: rgba(208, 197, 179, .62);
       text-decoration: none;
       transition: color .2s;
     }
@@ -662,6 +726,10 @@
         grid-template-columns: 1fr;
       }
 
+      .steps::before {
+        display: none;
+      }
+
       #nav .links a:not(.cta-nav) {
         display: none;
       }
@@ -678,7 +746,7 @@
         <g transform="rotate(-90,260.13194,256)">
           <g transform="translate(36.014263,-2.8911911)">
             <g transform="translate(-30.368362,-3.4481067)">
-              <path fill="#8875ff"
+              <path fill="#d6c2a1"
                 d="m 244.32357,149.16473 -10.01563,0.0156 c -57.53861,0.093 -105.26048,46.15504 -106.96093,104.03711 -1.73338,59.00207 45.00777,108.57781 104.00976,110.3164 1.20125,0.0354 11.63792,0.0178 12.40091,0.0195 l -0.54153,-33.98827 c -0.87935,-0.002 -10.40466,0.23256 -10.86328,0.21856 h -0.002 c -40.76556,-1.20124 -72.45152,-34.80875 -71.2539,-75.57422 1.17466,-39.98413 42.30839,-71.29131 81.99263,-71.35596 z M 462.20248,252.32879 C 460.1777,159.08325 385.18893,81.506054 291.26498,78.709664 c 1.21234,0.0348 -0.19927,-0.17476 -4.33594,-0.18359 l -42.76172,-0.0918 c 0.12009,19.88775 -0.31143,77.263466 -1.14649,104.494136 15.17023,-0.56443 30.11758,0.48088 45.12105,1.05469 39.69877,1.18196 70.13648,33.51604 68.94922,74.34961 -1.16878,40.19728 -32.58709,71.09761 -70.57226,71.16015 l -43.3086,0.0723 c 0.19704,36.09177 0.39683,72.18354 0.5957,108.2753 l 43.00195,0.0156 c 96.29108,-0.15719 172.59392,-81.27751 175.36133,-176.45703 0.0883,-3.03855 0.0985,-6.06239 0.0332,-9.07032 z M 244.1684,78.437824 C 143.41461,78.593024 49.811324,155.49152 46.810186,252.89683 c -3.059223,99.29069 79.163534,182.14728 182.503904,185.05078 1.93202,0.0543 3.64454,0.0241 5.1543,0.0273 l 9.36914,-0.13719 -0.12597,-43.90376 c -1.50642,-0.004 -11.99041,0.0134 -13.09278,-0.0176 C 151.202,391.68502 89.69938,329.19335 92.0094,254.21909 94.27517,180.68104 157.16137,122.57167 234.5055,122.45152 l 9.98437,-0.0156 z" />
             </g>
           </g>
@@ -706,7 +774,7 @@
         <g transform="rotate(-90,260.13194,256)">
           <g transform="translate(36.014263,-2.8911911)">
             <g transform="translate(-30.368362,-3.4481067)">
-              <path fill="#8875ff"
+              <path fill="#d6c2a1"
                 d="m 244.32357,149.16473 -10.01563,0.0156 c -57.53861,0.093 -105.26048,46.15504 -106.96093,104.03711 -1.73338,59.00207 45.00777,108.57781 104.00976,110.3164 1.20125,0.0354 11.63792,0.0178 12.40091,0.0195 l -0.54153,-33.98827 c -0.87935,-0.002 -10.40466,0.23256 -10.86328,0.21856 h -0.002 c -40.76556,-1.20124 -72.45152,-34.80875 -71.2539,-75.57422 1.17466,-39.98413 42.30839,-71.29131 81.99263,-71.35596 z M 462.20248,252.32879 C 460.1777,159.08325 385.18893,81.506054 291.26498,78.709664 c 1.21234,0.0348 -0.19927,-0.17476 -4.33594,-0.18359 l -42.76172,-0.0918 c 0.12009,19.88775 -0.31143,77.263466 -1.14649,104.494136 15.17023,-0.56443 30.11758,0.48088 45.12105,1.05469 39.69877,1.18196 70.13648,33.51604 68.94922,74.34961 -1.16878,40.19728 -32.58709,71.09761 -70.57226,71.16015 l -43.3086,0.0723 c 0.19704,36.09177 0.39683,72.18354 0.5957,108.2753 l 43.00195,0.0156 c 96.29108,-0.15719 172.59392,-81.27751 175.36133,-176.45703 0.0883,-3.03855 0.0985,-6.06239 0.0332,-9.07032 z M 244.1684,78.437824 C 143.41461,78.593024 49.811324,155.49152 46.810186,252.89683 c -3.059223,99.29069 79.163534,182.14728 182.503904,185.05078 1.93202,0.0543 3.64454,0.0241 5.1543,0.0273 l 9.36914,-0.13719 -0.12597,-43.90376 c -1.50642,-0.004 -11.99041,0.0134 -13.09278,-0.0176 C 151.202,391.68502 89.69938,329.19335 92.0094,254.21909 94.27517,180.68104 157.16137,122.57167 234.5055,122.45152 l 9.98437,-0.0156 z" />
             </g>
           </g>
@@ -787,7 +855,7 @@
         <div class="feat-icon">📡</div>
         <div class="feat-title">Zero Config Relay</div>
         <div class="feat-desc">Run <code
-            style="font-family:JetBrains Mono,monospace;font-size:12px;color:#6eccff">npx shellular-cli start</code>,
+            style="font-family:JetBrains Mono,monospace;font-size:12px;color:#d6c2a1">npx shellular-cli start</code>,
           scan the QR code, and you're in. No firewall rules, no tunnelling setup.</div>
       </div>
       <div class="feat-card reveal reveal-delay-3">
@@ -814,14 +882,17 @@
   <!-- HOW IT WORKS -->
   <div id="how">
     <div id="how-inner">
-      <div class="section-label reveal">Get up and running</div>
-      <h2 class="section-title reveal reveal-delay-1">Three steps to<br><span>code anywhere</span></h2>
+      <h2 class="section-title reveal reveal-delay-1">Three steps to <span>code anywhere</span></h2>
       <p class="section-sub reveal reveal-delay-2">No accounts. No cloud subscription. Just a local CLI and a browser.
       </p>
       <div class="steps">
         <div class="step reveal">
-          <div class="step-num">1</div>
-          <div class="step-title">Start the CLI on your machine</div>
+          <div class="step-header">
+            <div class="step-num">1</div>
+            <div class="step-meta">
+              <div class="step-title">Start the CLI on your machine</div>
+            </div>
+          </div>
           <div class="step-desc">Run the CLI agent on your laptop, desktop, or cloud server. It starts the WebSocket
             relay and generates a session token.</div>
           <div class="code-block">
@@ -829,8 +900,12 @@
           </div>
         </div>
         <div class="step reveal reveal-delay-1">
-          <div class="step-num">2</div>
-          <div class="step-title">Connect from any device</div>
+          <div class="step-header">
+            <div class="step-num">2</div>
+            <div class="step-meta">
+              <div class="step-title">Connect from any device</div>
+            </div>
+          </div>
           <div class="step-desc">Scan the QR code or paste the URL into Shellular on your mobile. Enter the 8-char
             session token — you're connected.</div>
           <div class="code-block">
@@ -838,8 +913,12 @@
           </div>
         </div>
         <div class="step reveal reveal-delay-2">
-          <div class="step-num">3</div>
-          <div class="step-title">Code, commit, ship</div>
+          <div class="step-header">
+            <div class="step-num">3</div>
+            <div class="step-meta">
+              <div class="step-title">Code, commit, ship</div>
+            </div>
+          </div>
           <div class="step-desc">Your full terminal and filesystem are live. Read files, run builds, commit code, and
             get AI help — all from your phone.</div>
           <div class="code-block">
@@ -874,8 +953,8 @@
       </a>
       <a href="#features" class="btn-secondary">Learn more</a>
     </div>
-    <p class="reveal reveal-delay-5" style="margin-top:32px;color:rgba(120,160,200,.35);font-size:12px">
-      Built by <a href="https://foxbiz.io" style="color:rgba(120,160,200,.55);text-decoration:none" target="_blank"
+    <p class="reveal reveal-delay-5" style="margin-top:32px;color:rgba(180,170,154,.38);font-size:12px">
+      Built by <a href="https://foxbiz.io" style="color:rgba(208,197,179,.62);text-decoration:none" target="_blank"
         rel="noopener">Foxbiz Software Pvt Ltd</a> · Proprietary License
     </p>
   </section>
@@ -887,7 +966,7 @@
         <g transform="rotate(-90,260.13194,256)">
           <g transform="translate(36.014263,-2.8911911)">
             <g transform="translate(-30.368362,-3.4481067)">
-              <path fill="#8875ff"
+              <path fill="#d6c2a1"
                 d="m 244.32357,149.16473 -10.01563,0.0156 c -57.53861,0.093 -105.26048,46.15504 -106.96093,104.03711 -1.73338,59.00207 45.00777,108.57781 104.00976,110.3164 1.20125,0.0354 11.63792,0.0178 12.40091,0.0195 l -0.54153,-33.98827 c -0.87935,-0.002 -10.40466,0.23256 -10.86328,0.21856 h -0.002 c -40.76556,-1.20124 -72.45152,-34.80875 -71.2539,-75.57422 1.17466,-39.98413 42.30839,-71.29131 81.99263,-71.35596 z M 462.20248,252.32879 C 460.1777,159.08325 385.18893,81.506054 291.26498,78.709664 c 1.21234,0.0348 -0.19927,-0.17476 -4.33594,-0.18359 l -42.76172,-0.0918 c 0.12009,19.88775 -0.31143,77.263466 -1.14649,104.494136 15.17023,-0.56443 30.11758,0.48088 45.12105,1.05469 39.69877,1.18196 70.13648,33.51604 68.94922,74.34961 -1.16878,40.19728 -32.58709,71.09761 -70.57226,71.16015 l -43.3086,0.0723 c 0.19704,36.09177 0.39683,72.18354 0.5957,108.2753 l 43.00195,0.0156 c 96.29108,-0.15719 172.59392,-81.27751 175.36133,-176.45703 0.0883,-3.03855 0.0985,-6.06239 0.0332,-9.07032 z M 244.1684,78.437824 C 143.41461,78.593024 49.811324,155.49152 46.810186,252.89683 c -3.059223,99.29069 79.163534,182.14728 182.503904,185.05078 1.93202,0.0543 3.64454,0.0241 5.1543,0.0273 l 9.36914,-0.13719 -0.12597,-43.90376 c -1.50642,-0.004 -11.99041,0.0134 -13.09278,-0.0176 C 151.202,391.68502 89.69938,329.19335 92.0094,254.21909 94.27517,180.68104 157.16137,122.57167 234.5055,122.45152 l 9.98437,-0.0156 z" />
             </g>
           </g>
@@ -1037,10 +1116,10 @@
 
       // sky gradient
       const grad = ctx.createLinearGradient(0, 0, 0, H);
-      grad.addColorStop(0, '#01011a');
-      grad.addColorStop(0.44, '#010c2a');
-      grad.addColorStop(0.58, '#021733');
-      grad.addColorStop(1, '#010a1c');
+      grad.addColorStop(0, '#0d0d0f');
+      grad.addColorStop(0.42, '#141417');
+      grad.addColorStop(0.6, '#1a1816');
+      grad.addColorStop(1, '#0a0a0c');
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, W, H);
 
@@ -1050,7 +1129,7 @@
         const a = (0.3 + 0.7 * (0.5 + 0.5 * Math.sin(t * s.speed + s.phase))) * 0.65;
         ctx.beginPath();
         ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(200,225,255,${a.toFixed(3)})`;
+        ctx.fillStyle = `rgba(241,231,214,${a.toFixed(3)})`;
         ctx.fill();
       }
 
@@ -1121,42 +1200,42 @@
                 : ((idx * 71 + row * 31) & 0xf) === 0;
               if (show) {
                 ctx.globalAlpha = (0.07 + loftBoost * 0.38) * repelAlpha;
-                ctx.fillStyle = loftBoost > 0 ? `rgba(160,210,255,1)` : '#8ab0ff';
+                ctx.fillStyle = loftBoost > 0 ? `rgba(237,223,198,1)` : '#a89275';
                 ctx.fillText(tok, rx, ry);
               }
             } else if (depth < -22) {
               // sky haze
               ctx.globalAlpha = (0.04 + 0.07 * (1 - (-depth - 22) / 48) + loftBoost * 0.45) * repelAlpha;
-              ctx.fillStyle = loftBoost > 0.1 ? `rgba(180,225,255,1)` : '#9cbfff';
+              ctx.fillStyle = loftBoost > 0.1 ? `rgba(244,233,214,1)` : '#b59f83';
               ctx.fillText(tok, rx, ry);
             } else if (depth < 0) {
               // spray / mist — transition into surface
               const t01 = 1 - (-depth / 22);
               const foam2 = foam * t01;
               ctx.globalAlpha = (0.18 + foam2 * 0.72) * repelAlpha;
-              ctx.fillStyle = `rgb(${Math.round(155 + foam2 * 100)},${Math.round(228 + foam2 * 27)},255)`;
+              ctx.fillStyle = `rgb(${Math.round(183 + foam2 * 54)},${Math.round(165 + foam2 * 52)},${Math.round(141 + foam2 * 48)})`;
               ctx.fillText(tok, rx, ry);
             } else if (depth < 10) {
               // CREST — maximum brightness ★
               ctx.globalAlpha = (0.80 + foam * 0.20) * repelAlpha;
-              ctx.fillStyle = `rgb(${Math.round(175 + foam * 80)},${Math.round(238 + foam * 17)},255)`;
+              ctx.fillStyle = `rgb(${Math.round(212 + foam * 30)},${Math.round(192 + foam * 28)},${Math.round(165 + foam * 26)})`;
               ctx.fillText(tok, rx, ry);
             } else if (depth < 50) {
               // shallow — bright cyan fading to teal
               const d01 = (depth - 10) / 40;
               ctx.globalAlpha = (0.80 - d01 * 0.30) * repelAlpha;
-              ctx.fillStyle = `rgb(${Math.round(75 - d01 * 45)},${Math.round(200 - d01 * 85)},${Math.round(220 - d01 * 20)})`;
+              ctx.fillStyle = `rgb(${Math.round(163 - d01 * 35)},${Math.round(142 - d01 * 34)},${Math.round(119 - d01 * 26)})`;
               ctx.fillText(tok, rx, ry);
             } else if (depth < 130) {
               // mid — teal fading to navy
               const d01 = (depth - 50) / 80;
               ctx.globalAlpha = (0.50 - d01 * 0.27) * repelAlpha;
-              ctx.fillStyle = `rgb(${Math.round(30 - d01 * 18)},${Math.round(115 - d01 * 82)},${Math.round(185 - d01 * 55)})`;
+              ctx.fillStyle = `rgb(${Math.round(108 - d01 * 24)},${Math.round(92 - d01 * 26)},${Math.round(78 - d01 * 24)})`;
               ctx.fillText(tok, rx, ry);
             } else {
               // abyss
               ctx.globalAlpha = 0.13 * repelAlpha;
-              ctx.fillStyle = '#142060';
+              ctx.fillStyle = '#2a2522';
               ctx.fillText(tok, rx, ry);
             }
 
@@ -1196,18 +1275,18 @@
             if (depth >= 0) {
               if (depth < 10) {
                 oCtx.globalAlpha = 0.80 + foam * 0.20;
-                oCtx.fillStyle = `rgb(${Math.round(175 + foam * 80)},${Math.round(238 + foam * 17)},255)`;
+                oCtx.fillStyle = `rgb(${Math.round(212 + foam * 30)},${Math.round(192 + foam * 28)},${Math.round(165 + foam * 26)})`;
               } else if (depth < 50) {
                 const d01 = (depth - 10) / 40;
                 oCtx.globalAlpha = 0.80 - d01 * 0.30;
-                oCtx.fillStyle = `rgb(${Math.round(75 - d01 * 45)},${Math.round(200 - d01 * 85)},${Math.round(220 - d01 * 20)})`;
+                oCtx.fillStyle = `rgb(${Math.round(163 - d01 * 35)},${Math.round(142 - d01 * 34)},${Math.round(119 - d01 * 26)})`;
               } else if (depth < 130) {
                 const d01 = (depth - 50) / 80;
                 oCtx.globalAlpha = 0.50 - d01 * 0.27;
-                oCtx.fillStyle = `rgb(${Math.round(30 - d01 * 18)},${Math.round(115 - d01 * 82)},${Math.round(185 - d01 * 55)})`;
+                oCtx.fillStyle = `rgb(${Math.round(108 - d01 * 24)},${Math.round(92 - d01 * 26)},${Math.round(78 - d01 * 24)})`;
               } else {
                 oCtx.globalAlpha = 0.13;
-                oCtx.fillStyle = '#142060';
+                oCtx.fillStyle = '#2a2522';
               }
               oCtx.fillText(tok, x, cellCY);
               oCtx.globalAlpha = 1;
