@@ -1,20 +1,4 @@
 declare global {
-  declare namespace Express {
-    interface User {
-      id: number;
-      name: string;
-      email: string;
-      github?: string;
-      website?: string;
-      anonymous?: boolean;
-      role: 'admin' | 'user';
-    }
-
-    export interface Request {
-      user?: User;
-    }
-  }
-
   type Condition<T> = Partial<T> & {
     $scope?: string;
     $or?: Condition<T>[];

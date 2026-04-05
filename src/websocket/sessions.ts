@@ -96,6 +96,22 @@ export function removeHttpClient(clientId: string): void {
 	httpClientToSession.delete(clientId);
 }
 
+export function rehostSession(
+	token: string,
+	newHost: WebSocket,
+	hostInfo: Session["hostInfo"],
+): Session | null {
+	const session = sessions.get(token);
+	if (!session) return null;
+	// Remove old host mapping (old socket may already be dead)
+	socketToSession.delete(session.host);
+	// Update host
+	session.host = newHost;
+	session.hostInfo = hostInfo;
+	socketToSession.set(newHost, { session, role: "host" });
+	return session;
+}
+
 export function getSessionForSocket(ws: WebSocket) {
 	return socketToSession.get(ws) ?? null;
 }

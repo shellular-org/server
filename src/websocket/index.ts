@@ -7,17 +7,32 @@ const { Server: WSServer } = require("ws");
 import {
 	appendTerminalBuffer,
 	createSession,
+	getSession,
 	getSessionForSocket,
 	joinSession,
 	pushToHttpClients,
+	rehostSession,
 	removeSocket,
 	removeTerminalBuffer,
 } from "./sessions";
 
+const PING_INTERVAL_MS = 30_000;
+
 export function initWebSocket(server: HttpServer) {
 	const wss = new WSServer({ server });
 
+	// Ping all connected sockets periodically to keep connections alive
+	// through reverse proxies and load balancers
+	const aliveSet = new WeakSet<WebSocket>();
+
 	wss.on("connection", (ws: WebSocket) => {
+		aliveSet.add(ws);
+
+		// biome-ignore lint/suspicious/noExplicitAny: ws library pong event not on base type
+		(ws as any).on("pong", () => {
+			aliveSet.add(ws);
+		});
+
 		// First message must be session:host or session:join
 		let authenticated = false;
 
@@ -29,6 +44,14 @@ export function initWebSocket(server: HttpServer) {
 				ws.send(
 					JSON.stringify({ type: "error", id: "0", error: "Invalid JSON" }),
 				);
+				return;
+			}
+
+			// Application-level ping — respond with pong
+			if (msg.type === "ping") {
+				try {
+					ws.send(JSON.stringify({ type: "pong", id: msg.id }));
+				} catch {}
 				return;
 			}
 
@@ -48,6 +71,21 @@ export function initWebSocket(server: HttpServer) {
 		ws.on("error", () => removeSocket(ws));
 	});
 
+	// Periodic ping to detect dead connections and keep proxies happy
+	setInterval(() => {
+		for (const ws of wss.clients) {
+			if (!aliveSet.has(ws as WebSocket)) {
+				(ws as WebSocket).terminate();
+				continue;
+			}
+			aliveSet.delete(ws as WebSocket);
+			try {
+				// biome-ignore lint/suspicious/noExplicitAny: ws library ping not on base type
+				(ws as any).ping();
+			} catch {}
+		}
+	}, PING_INTERVAL_MS);
+
 	console.info("WebSocket server initialized");
 	return wss;
 }
@@ -57,14 +95,25 @@ function handleAuth(
 	msg: { type: string; id: string; data?: Record<string, unknown> },
 ) {
 	if (msg.type === "session:host") {
-		const token = randomUUID().slice(0, 8);
 		const data = msg.data ?? {};
 		const hostInfo = {
 			hostname: String(data.hostname ?? "unknown"),
 			platform: String(data.platform ?? "unknown"),
 			dir: String(data.dir ?? "."),
 		};
-		createSession(token, ws, hostInfo);
+
+		// Support re-hosting: if CLI provides its old token, reuse the session
+		const requestedToken = data.token ? String(data.token) : null;
+		let token: string;
+
+		if (requestedToken && getSession(requestedToken)) {
+			rehostSession(requestedToken, ws, hostInfo);
+			token = requestedToken;
+		} else {
+			token = randomUUID().slice(0, 8);
+			createSession(token, ws, hostInfo);
+		}
+
 		ws.send(
 			JSON.stringify({ type: "session:hosted", id: msg.id, data: { token } }),
 		);
