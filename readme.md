@@ -18,7 +18,7 @@ The server acts as a stateless relay:
 ## Requirements
 
 - Node.js 18+
-- npm
+- pnpm
 
 ---
 
@@ -28,13 +28,13 @@ The server acts as a stateless relay:
 
 ```bash
 cd server
-npm install
+pnpm install
 ```
 
 ### Run (watch mode)
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 Server listens on `0.0.0.0:3000` by default.
@@ -42,7 +42,7 @@ Server listens on `0.0.0.0:3000` by default.
 ### Run (one-shot)
 
 ```bash
-npm start
+pnpm start
 ```
 
 ### Environment Variables
@@ -52,7 +52,7 @@ npm start
 | `PORT`        | `3000`  | TCP port to listen on                      |
 | `CORS_ORIGIN` | `*`     | `Access-Control-Allow-Origin` header value |
 
-Create a `.env` file in `server/` to override defaults:
+Create a `.env` file in `server/` to override defaults (see [.env.example](.env.example)):
 
 ```env
 PORT=3000
