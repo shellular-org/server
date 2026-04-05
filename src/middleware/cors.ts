@@ -1,8 +1,8 @@
 import type { NextFunction, Request, Response } from "express";
+import { env } from "env";
 
 export default function cors(req: Request, res: Response, next: NextFunction) {
-	const origin = process.env.CORS_ORIGIN || "*";
-	res.header("Access-Control-Allow-Origin", origin);
+	res.header("Access-Control-Allow-Origin", env.CORS_ORIGIN);
 	res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
 	res.header(
 		"Access-Control-Allow-Headers",

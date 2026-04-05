@@ -6,6 +6,7 @@ import { initConfig } from "config";
 import dotenv from "dotenv";
 import Express from "express";
 import cors from "middleware/cors";
+import { env } from "env";
 import { init } from "utils/db";
 import { initWebSocket } from "websocket/index";
 import {
@@ -27,7 +28,6 @@ process.on("unhandledRejection", (reason) => {
 });
 
 const app = Express();
-const PORT = process.env.PORT || 3000;
 const indexHtml = readFileSync(resolve("public/index.html"), "utf-8");
 
 (async function main() {
@@ -138,7 +138,7 @@ const indexHtml = readFileSync(resolve("public/index.html"), "utf-8");
 	const server = createServer(app);
 	initWebSocket(server);
 
-	server.listen(Number(PORT), "0.0.0.0", 0, () => {
-		console.info(`Server is running on port ${PORT}`);
+	server.listen(env.PORT, "0.0.0.0", 0, () => {
+		console.info(`Server is running on port ${env.PORT}`);
 	});
 })();
