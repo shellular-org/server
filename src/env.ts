@@ -4,7 +4,7 @@ import * as z from "zod";
 dotenv.config({ override: true });
 
 const envSchema = z.object({
-  PORT: z.number().default(3000),
+  PORT: z.string().transform(Number).default(6969),
   CORS_ORIGIN: z.string().default("*"),
 });
 
