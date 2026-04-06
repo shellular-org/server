@@ -1,1366 +1,1632 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shellular - Code, review and ship from anywhere.</title>
-  <meta name="description"
-    content="Shellular connects your mobile device to your full development environment. Terminal access, filesystem, and AI-assisted coding — anywhere.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
-    rel="stylesheet">
-  <style>
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    :root {
-      --sky-bg: #0d0d0f;
-      --accent: #d6c2a1;
-      --accent2: #8a745c;
-      --text-primary: #f5f1e8;
-      --text-muted: rgba(222, 214, 200, 0.66);
-      --card-bg: rgba(24, 24, 27, 0.74);
-      --card-border: rgba(214, 194, 161, 0.14);
-      --line-soft: rgba(214, 194, 161, 0.1);
-      --surface-strong: rgba(27, 27, 31, 0.9);
-      --surface-soft: rgba(245, 241, 232, 0.05);
-      --success: #91c58a;
-    }
-
-    html {
-      scroll-behavior: smooth;
-    }
-
-    body {
-      font-family: 'Inter', system-ui, sans-serif;
-      background:
-        radial-gradient(circle at top, rgba(214, 194, 161, 0.1), transparent 30%),
-        linear-gradient(180deg, #0d0d0f 0%, #101013 55%, #0a0a0c 100%);
-      color: var(--text-primary);
-      overflow-x: hidden;
-    }
-
-    /* NAV */
-    #nav {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 clamp(16px, 4vw, 48px);
-      height: 60px;
-      background: rgba(13, 13, 15, 0.62);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border-bottom: 1px solid var(--line-soft);
-    }
-
-    #nav .brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      text-decoration: none;
-      color: var(--text-primary);
-      font-weight: 700;
-      font-size: 17px;
-    }
-
-    #nav .brand svg {
-      width: 30px;
-      height: 30px;
-      flex-shrink: 0;
-    }
-
-    #nav .links {
-      display: flex;
-      align-items: center;
-      gap: clamp(16px, 3vw, 32px);
-    }
-
-    #nav .links a {
-      color: var(--text-muted);
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 500;
-      transition: color .2s;
-    }
-
-    #nav .links a:hover {
-      color: var(--accent);
-    }
-
-    #nav .links .cta-nav {
-      background: linear-gradient(135deg, #7b6853, #d6c2a1);
-      color: #140f0a !important;
-      padding: 7px 18px;
-      border-radius: 20px;
-      font-size: 13px !important;
-      font-weight: 600 !important;
-    }
-
-    #nav .links .cta-nav:hover {
-      opacity: .9;
-    }
-
-    #music-btn {
-      position: absolute;
-      bottom: 28px;
-      right: 28px;
-      z-index: 10;
-      background: rgba(24, 24, 27, 0.72);
-      border: 1px solid rgba(214, 194, 161, 0.2);
-      border-radius: 50%;
-      padding: 11px;
-      cursor: pointer;
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: color .2s, border-color .2s, background .2s;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-    }
-
-    #music-btn:hover {
-      color: var(--accent);
-      border-color: rgba(214, 194, 161, 0.42);
-      background: rgba(24, 24, 27, 0.92);
-    }
-
-    #music-btn svg {
-      display: block;
-    }
-
-    /* HERO */
-    #hero {
-      position: relative;
-      width: 100%;
-      height: 100vh;
-      overflow: hidden;
-      background: var(--sky-bg);
-    }
-
-    #wave-canvas {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-
-    #wave-overlay {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      display: block;
-      z-index: 30;
-      pointer-events: none;
-    }
-
-    #hero-name {
-      position: absolute;
-      top: 80px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 25;
-      font-size: 1.15rem;
-      font-weight: 700;
-      letter-spacing: .22em;
-      text-transform: uppercase;
-      color: rgba(245, 241, 232, 0.82);
-      text-shadow: 0 0 18px rgba(214, 194, 161, 0.2);
-      pointer-events: none;
-      white-space: nowrap;
-    }
-
-    .badges {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-bottom: 22px;
-    }
-
-    .badge {
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      padding: 4px 12px;
-      border-radius: 20px;
-      border: 1px solid rgba(214, 194, 161, .24);
-      color: var(--accent);
-      background: rgba(214, 194, 161, .06);
-    }
-
-    .hero-intro h1 {
-      font-size: clamp(2.4rem, 6vw, 5rem);
-      font-weight: 800;
-      line-height: 1.1;
-      letter-spacing: -.03em;
-      background: linear-gradient(180deg, #f8f5ee 0%, #e8dbc7 52%, #b89f7f 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 16px;
-      max-width: 750px;
-      padding: 0 16px;
-    }
-
-    .hero-intro .subtitle {
-      font-size: clamp(14px, 2vw, 18px);
-      color: var(--text-muted);
-      max-width: 480px;
-      line-height: 1.6;
-      margin-bottom: 30px;
-      padding: 0 16px;
-    }
-
-    .hero-btns {
-      display: flex;
-      gap: 14px;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-
-    .hero-intro {
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: clamp(60px, 9vw, 100px) 16px clamp(50px, 7vw, 80px);
-    }
-
-    .btn-primary {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 13px 28px;
-      background: linear-gradient(135deg, #806a54, #d6c2a1);
-      color: #140f0a;
-      border-radius: 28px;
-      font-size: 15px;
-      font-weight: 600;
-      text-decoration: none;
-      transition: transform .2s, opacity .2s;
-      box-shadow: 0 14px 40px rgba(0, 0, 0, .32);
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      opacity: .92;
-    }
-
-    .btn-secondary {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 26px;
-      background: rgba(245, 241, 232, .04);
-      border: 1px solid rgba(214, 194, 161, .22);
-      color: var(--accent);
-      border-radius: 28px;
-      font-size: 15px;
-      font-weight: 600;
-      text-decoration: none;
-      transition: background .2s, transform .2s;
-    }
-
-    .btn-secondary:hover {
-      background: rgba(214, 194, 161, .1);
-      transform: translateY(-2px);
-    }
-
-    .scroll-hint {
-      position: absolute;
-      bottom: 28px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 10;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      color: rgba(214, 194, 161, .42);
-      font-size: 11px;
-      letter-spacing: .1em;
-      text-transform: uppercase;
-      animation: bounce 2.4s infinite;
-      pointer-events: none;
-    }
-
-    @keyframes bounce {
-
-      0%,
-      100% {
-        transform: translateX(-50%) translateY(0)
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shellular - Code, review and ship from anywhere.</title>
+    <meta
+      name="description"
+      content="Shellular connects your mobile device to your full development environment. Terminal access, filesystem, and AI-assisted coding — anywhere."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
       }
 
-      50% {
-        transform: translateX(-50%) translateY(8px)
-      }
-    }
-
-    /* LOGO */
-    #logo-float {
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 20;
-      width: 220px;
-      height: 220px;
-      pointer-events: none;
-      will-change: top;
-    }
-
-    #logo-float svg {
-      width: 220px;
-      height: 220px;
-      filter: drop-shadow(0 0 18px rgba(214, 194, 161, .18));
-    }
-
-    #logo-reflection {
-      position: absolute;
-      bottom: -44px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 180px;
-      height: 55px;
-      background: radial-gradient(ellipse, rgba(214, 194, 161, .2) 0%, transparent 70%);
-      filter: blur(7px);
-      pointer-events: none;
-    }
-
-    /* SECTIONS */
-    .section-label {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .12em;
-      color: var(--accent);
-      margin-bottom: 12px;
-    }
-
-    .section-title {
-      font-size: clamp(1.8rem, 4vw, 2.8rem);
-      font-weight: 800;
-      letter-spacing: -.03em;
-      color: var(--text-primary);
-      margin-bottom: 16px;
-      line-height: 1.15;
-    }
-
-    .section-title span {
-      color: var(--accent);
-    }
-
-    .section-sub {
-      font-size: 16px;
-      color: var(--text-muted);
-      line-height: 1.65;
-      max-width: 560px;
-      margin-bottom: 48px;
-    }
-
-    .ocean-divider {
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(214, 194, 161, .16), transparent);
-    }
-
-    /* FEATURES */
-    #features {
-      padding: clamp(70px, 10vw, 110px) clamp(16px, 8vw, 80px) clamp(60px, 8vw, 100px);
-      max-width: 1100px;
-      margin: 0 auto;
-    }
-
-    .features-header {
-      text-align: center;
-      margin-bottom: 52px;
-    }
-
-    .features-header .section-sub {
-      margin: 0 auto;
-    }
-
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 20px;
-    }
-
-    .feat-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 16px;
-      padding: 28px;
-      transition: border-color .3s, transform .3s, box-shadow .3s;
-    }
-
-    .feat-card:hover {
-      border-color: rgba(214, 194, 161, .28);
-      transform: translateY(-4px);
-      box-shadow: 0 20px 44px rgba(0, 0, 0, .3);
-    }
-
-    .feat-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, rgba(214, 194, 161, .18), rgba(138, 116, 92, .16));
-      border: 1px solid rgba(214, 194, 161, .2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      margin-bottom: 18px;
-    }
-
-    .feat-title {
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin-bottom: 8px;
-    }
-
-    .feat-desc {
-      font-size: 14px;
-      color: var(--text-muted);
-      line-height: 1.6;
-    }
-
-    /* HOW IT WORKS */
-    #how {
-      background: rgba(18, 18, 21, .72);
-      border-top: 1px solid var(--line-soft);
-      border-bottom: 1px solid var(--line-soft);
-    }
-
-    #how-inner {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: clamp(60px, 8vw, 100px) clamp(16px, 8vw, 80px);
-    }
-
-    .steps {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 32px;
-      margin-top: 48px;
-      position: relative;
-      align-items: stretch;
-    }
-
-    .steps::before {
-      content: '';
-      position: absolute;
-      left: 24px;
-      right: 24px;
-      top: 18px;
-      height: 1px;
-      background: linear-gradient(90deg, rgba(214, 194, 161, 0.28), rgba(214, 194, 161, 0.08));
-      pointer-events: none;
-    }
-
-    .step {
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-      min-height: 100%;
-      padding: 24px;
-      border-radius: 22px;
-      border: 1px solid rgba(214, 194, 161, 0.12);
-      background:
-        linear-gradient(180deg, rgba(245, 241, 232, 0.045), rgba(245, 241, 232, 0.02)),
-        rgba(14, 14, 17, 0.8);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
-      position: relative;
-      overflow: hidden;
-      transition: transform .28s ease, border-color .28s ease, background .28s ease, box-shadow .28s ease;
-    }
-
-    .step::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at top left, rgba(214, 194, 161, 0.12), transparent 42%);
-      opacity: 0.9;
-      pointer-events: none;
-    }
-
-    .step:hover {
-      transform: translateY(-6px);
-      border-color: rgba(214, 194, 161, 0.24);
-      box-shadow: 0 22px 48px rgba(0, 0, 0, 0.28);
-    }
-
-    .step-header {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding-bottom: 18px;
-      border-bottom: 1px solid rgba(214, 194, 161, 0.08);
-    }
-
-    .step-num {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #7b6853, #d6c2a1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 15px;
-      font-weight: 800;
-      color: #140f0a;
-      flex-shrink: 0;
-      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
-    }
-
-    .step-meta {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      min-width: 0;
-    }
-
-    .step-title {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--text-primary);
-      letter-spacing: -.02em;
-    }
-
-    .step-desc {
-      font-size: 14px;
-      color: var(--text-muted);
-      line-height: 1.6;
-      position: relative;
-      z-index: 1;
-    }
-
-    .code-block {
-      background: rgba(14, 14, 17, .92);
-      border: 1px solid rgba(214, 194, 161, .12);
-      border-radius: 10px;
-      padding: 14px 18px;
-      font-family: 'JetBrains Mono', 'Courier New', monospace;
-      font-size: 13px;
-      color: var(--accent);
-      margin-top: 4px;
-      position: relative;
-      overflow: hidden;
-      z-index: 1;
-    }
-
-    .code-block::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 3px;
-      background: linear-gradient(180deg, #7b6853, #d6c2a1);
-      border-radius: 10px 0 0 10px;
-    }
-
-    .code-comment {
-      color: rgba(180, 170, 154, .56);
-      font-size: 12px;
-      margin-bottom: 4px;
-    }
-
-    /* INSTALL */
-    #install {
-      padding: clamp(60px, 8vw, 100px) clamp(16px, 8vw, 80px);
-      max-width: 1100px;
-      margin: 0 auto;
-      text-align: center;
-    }
-
-    .install-box {
-      display: inline-flex;
-      align-items: center;
-      gap: 16px;
-      background: rgba(14, 14, 17, .94);
-      border: 1px solid rgba(214, 194, 161, .16);
-      border-radius: 14px;
-      padding: 16px 24px;
-      margin: 32px 0 36px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 15px;
-      color: var(--accent);
-    }
-
-    .install-box .prompt {
-      color: rgba(180, 170, 154, .56);
-      user-select: none;
-    }
-
-    .copy-btn {
-      background: rgba(214, 194, 161, .08);
-      border: 1px solid rgba(214, 194, 161, .18);
-      color: var(--accent);
-      padding: 6px 14px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-family: 'Inter', sans-serif;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background .2s;
-      flex-shrink: 0;
-    }
-
-    .copy-btn:hover {
-      background: rgba(214, 194, 161, .14);
-    }
-
-    .copy-btn.copied {
-      color: var(--success);
-      border-color: rgba(145, 197, 138, .32);
-    }
-
-    #install .hero-btns {
-      justify-content: center;
-    }
-
-    /* FOOTER */
-    footer {
-      border-top: 1px solid var(--line-soft);
-      padding: 32px clamp(16px, 8vw, 80px);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 16px;
-      color: rgba(180, 170, 154, .44);
-      font-size: 12px;
-    }
-
-    footer a {
-      color: rgba(208, 197, 179, .62);
-      text-decoration: none;
-      transition: color .2s;
-    }
-
-    footer a:hover {
-      color: var(--accent);
-    }
-
-    .footer-brand {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .footer-brand svg {
-      width: 22px;
-      height: 22px;
-    }
-
-    .footer-links {
-      display: flex;
-      gap: 20px;
-      flex-wrap: wrap;
-    }
-
-    /* REVEAL */
-    .reveal {
-      opacity: 0;
-      transform: translateY(28px);
-      transition: opacity .7s ease-out, transform .7s ease-out;
-    }
-
-    .reveal.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .reveal-delay-1 {
-      transition-delay: .1s;
-    }
-
-    .reveal-delay-2 {
-      transition-delay: .2s;
-    }
-
-    .reveal-delay-3 {
-      transition-delay: .3s;
-    }
-
-    .reveal-delay-4 {
-      transition-delay: .4s;
-    }
-
-    .reveal-delay-5 {
-      transition-delay: .5s;
-    }
-
-    @media (max-width: 600px) {
-      #logo-float {
-        width: 140px;
-        height: 140px;
+      :root {
+        --sky-bg: #0d0d0f;
+        --accent: #d6c2a1;
+        --accent2: #8a745c;
+        --text-primary: #f5f1e8;
+        --text-muted: rgba(222, 214, 200, 0.66);
+        --card-bg: rgba(24, 24, 27, 0.74);
+        --card-border: rgba(214, 194, 161, 0.14);
+        --line-soft: rgba(214, 194, 161, 0.1);
+        --surface-strong: rgba(27, 27, 31, 0.9);
+        --surface-soft: rgba(245, 241, 232, 0.05);
+        --success: #91c58a;
       }
 
-      #logo-float svg {
-        width: 140px;
-        height: 140px;
+      html {
+        scroll-behavior: smooth;
       }
 
-      .features-grid,
+      body {
+        font-family: "Inter", system-ui, sans-serif;
+        background:
+          radial-gradient(circle at top, rgba(214, 194, 161, 0.1), transparent 30%),
+          linear-gradient(180deg, #0d0d0f 0%, #101013 55%, #0a0a0c 100%);
+        color: var(--text-primary);
+        overflow-x: hidden;
+      }
+
+      /* NAV */
+      #nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 clamp(16px, 4vw, 48px);
+        height: 60px;
+        background: rgba(13, 13, 15, 0.62);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border-bottom: 1px solid var(--line-soft);
+      }
+
+      #nav .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        color: var(--text-primary);
+        font-weight: 700;
+        font-size: 17px;
+      }
+
+      #nav .brand svg {
+        width: 30px;
+        height: 30px;
+        flex-shrink: 0;
+      }
+
+      #nav .links {
+        display: flex;
+        align-items: center;
+        gap: clamp(16px, 3vw, 32px);
+      }
+
+      #nav .links a {
+        color: var(--text-muted);
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        transition: color 0.2s;
+      }
+
+      #nav .links a:hover {
+        color: var(--accent);
+      }
+
+      #nav .links .cta-nav {
+        background: linear-gradient(135deg, #7b6853, #d6c2a1);
+        color: #140f0a !important;
+        padding: 7px 18px;
+        border-radius: 20px;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+      }
+
+      #nav .links .cta-nav:hover {
+        opacity: 0.9;
+      }
+
+      #music-btn {
+        position: absolute;
+        bottom: 28px;
+        right: 28px;
+        z-index: 10;
+        background: rgba(24, 24, 27, 0.72);
+        border: 1px solid rgba(214, 194, 161, 0.2);
+        border-radius: 50%;
+        padding: 11px;
+        cursor: pointer;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+          color 0.2s,
+          border-color 0.2s,
+          background 0.2s;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+      }
+
+      #music-btn:hover {
+        color: var(--accent);
+        border-color: rgba(214, 194, 161, 0.42);
+        background: rgba(24, 24, 27, 0.92);
+      }
+
+      #music-btn svg {
+        display: block;
+      }
+
+      /* HERO */
+      #hero {
+        position: relative;
+        width: 100%;
+        min-height: 100vh;
+        min-height: 100svh;
+        overflow: hidden;
+        background: var(--sky-bg);
+      }
+
+      #wave-canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        opacity: 0.58;
+      }
+
+      #wave-overlay {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        z-index: 30;
+        pointer-events: none;
+        opacity: 0.32;
+      }
+
+      #hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(180deg, rgba(10, 10, 12, 0.34) 0%, rgba(10, 10, 12, 0.18) 24%, rgba(10, 10, 12, 0.58) 100%),
+          radial-gradient(circle at center, rgba(13, 13, 15, 0.02), rgba(13, 13, 15, 0.58) 78%);
+        z-index: 12;
+        pointer-events: none;
+      }
+
+      .hero-content {
+        position: relative;
+        z-index: 40;
+        min-height: 100vh;
+        min-height: 100svh;
+        display: grid;
+        align-items: center;
+        grid-template-columns: minmax(0, 1.05fr) minmax(300px, 420px);
+        gap: clamp(24px, 5vw, 54px);
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 116px clamp(16px, 5vw, 48px) 104px;
+      }
+
+      .hero-copy {
+        text-align: left;
+        max-width: 700px;
+      }
+
+      .hero-copy .badges {
+        justify-content: flex-start;
+        margin-bottom: 18px;
+      }
+
+      .hero-copy h1 {
+        font-size: clamp(2.7rem, 6vw, 5.4rem);
+        font-weight: 800;
+        line-height: 1.04;
+        letter-spacing: -0.04em;
+        background: linear-gradient(180deg, #f8f5ee 0%, #ecdfc9 56%, #b89f7f 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 18px;
+        max-width: 11.5ch;
+      }
+
+      .hero-copy .subtitle {
+        font-size: clamp(15px, 1.9vw, 19px);
+        color: rgba(236, 229, 218, 0.82);
+        max-width: 58ch;
+        line-height: 1.65;
+        margin-bottom: 28px;
+      }
+
+      .hero-proof {
+        border: 1px solid rgba(214, 194, 161, 0.18);
+        border-radius: 24px;
+        background: linear-gradient(180deg, rgba(26, 26, 30, 0.78), rgba(16, 16, 19, 0.74)), rgba(14, 14, 17, 0.72);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        overflow: hidden;
+      }
+
+      .hero-proof-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 16px 18px;
+        border-bottom: 1px solid rgba(214, 194, 161, 0.1);
+        color: rgba(245, 241, 232, 0.9);
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .hero-proof-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--success);
+        box-shadow: 0 0 0 6px rgba(145, 197, 138, 0.14);
+        flex-shrink: 0;
+      }
+
+      .hero-proof-body {
+        padding: 18px;
+        display: grid;
+        gap: 16px;
+      }
+
+      .hero-proof-title {
+        font-weight: 700;
+        line-height: 1.2;
+        color: var(--text-primary);
+      }
+
+      .hero-proof-subtitle {
+        color: rgb(236, 229, 218);
+        font-size: 14px;
+        line-height: 1.65;
+      }
+
+      .hero-proof-list {
+        list-style: none;
+        display: grid;
+        gap: 12px;
+      }
+
+      .hero-proof-list li {
+        position: relative;
+        padding-left: 18px;
+        color: rgba(245, 241, 232, 0.84);
+        font-size: 14px;
+        line-height: 1.55;
+      }
+
+      .hero-proof-list li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0.62em;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--accent);
+      }
+
+      .badges {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-bottom: 22px;
+      }
+
+      .badge {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 4px 12px;
+        border-radius: 20px;
+        border: 1px solid rgba(214, 194, 161, 0.24);
+        color: var(--accent);
+        background: rgba(214, 194, 161, 0.06);
+      }
+
+      .hero-intro h1 {
+        font-size: clamp(2.4rem, 6vw, 5rem);
+        font-weight: 800;
+        line-height: 1.1;
+        letter-spacing: -0.03em;
+        background: linear-gradient(180deg, #f8f5ee 0%, #e8dbc7 52%, #b89f7f 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 16px;
+        max-width: 750px;
+        padding: 0 16px;
+      }
+
+      .hero-intro .subtitle {
+        font-size: clamp(14px, 2vw, 18px);
+        color: var(--text-muted);
+        max-width: 480px;
+        line-height: 1.6;
+        margin-bottom: 30px;
+        padding: 0 16px;
+      }
+
+      .hero-btns {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .hero-intro {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: clamp(60px, 9vw, 100px) 16px clamp(50px, 7vw, 80px);
+      }
+
+      .btn-primary {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 13px 28px;
+        background: linear-gradient(135deg, #806a54, #d6c2a1);
+        color: #140f0a;
+        border-radius: 28px;
+        font-size: 15px;
+        font-weight: 600;
+        text-decoration: none;
+        transition:
+          transform 0.2s,
+          opacity 0.2s;
+        box-shadow: 0 14px 40px rgba(0, 0, 0, 0.32);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        opacity: 0.92;
+      }
+
+      .btn-secondary {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 26px;
+        background: rgba(245, 241, 232, 0.04);
+        border: 1px solid rgba(214, 194, 161, 0.22);
+        color: var(--accent);
+        border-radius: 28px;
+        font-size: 15px;
+        font-weight: 600;
+        text-decoration: none;
+        transition:
+          background 0.2s,
+          transform 0.2s;
+      }
+
+      .btn-secondary:hover {
+        background: rgba(214, 194, 161, 0.1);
+        transform: translateY(-2px);
+      }
+
+      .scroll-hint {
+        position: absolute;
+        bottom: 28px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        color: rgba(214, 194, 161, 0.42);
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        animation: bounce 2.4s infinite;
+        pointer-events: none;
+      }
+
+      @keyframes bounce {
+        0%,
+        100% {
+          transform: translateX(-50%) translateY(0);
+        }
+
+        50% {
+          transform: translateX(-50%) translateY(8px);
+        }
+      }
+
+      /* SECTIONS */
+      .section-label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--accent);
+        margin-bottom: 12px;
+      }
+
+      .section-title {
+        font-size: clamp(1.8rem, 4vw, 2.8rem);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        color: var(--text-primary);
+        margin-bottom: 16px;
+        line-height: 1.15;
+      }
+
+      .section-title span {
+        color: var(--accent);
+      }
+
+      .section-sub {
+        font-size: 16px;
+        color: var(--text-muted);
+        line-height: 1.65;
+        max-width: 560px;
+        margin-bottom: 48px;
+      }
+
+      .ocean-divider {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(214, 194, 161, 0.16), transparent);
+      }
+
+      /* FEATURES */
+      #features {
+        padding: clamp(70px, 10vw, 110px) clamp(16px, 8vw, 80px) clamp(60px, 8vw, 100px);
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+
+      .features-header {
+        text-align: center;
+        margin-bottom: 52px;
+      }
+
+      .features-header .section-sub {
+        margin: 0 auto;
+      }
+
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+      }
+
+      .feat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 16px;
+        padding: 28px;
+        transition:
+          border-color 0.3s,
+          transform 0.3s,
+          box-shadow 0.3s;
+      }
+
+      .feat-card:hover {
+        border-color: rgba(214, 194, 161, 0.28);
+        transform: translateY(-4px);
+        box-shadow: 0 20px 44px rgba(0, 0, 0, 0.3);
+      }
+
+      .feat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, rgba(214, 194, 161, 0.18), rgba(138, 116, 92, 0.16));
+        border: 1px solid rgba(214, 194, 161, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        margin-bottom: 18px;
+      }
+
+      .feat-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+      }
+
+      .feat-desc {
+        font-size: 14px;
+        color: var(--text-muted);
+        line-height: 1.6;
+      }
+
+      /* HOW IT WORKS */
+      #how {
+        background: rgba(18, 18, 21, 0.72);
+        border-top: 1px solid var(--line-soft);
+        border-bottom: 1px solid var(--line-soft);
+      }
+
+      #how-inner {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: clamp(60px, 8vw, 100px) clamp(16px, 8vw, 80px);
+      }
+
       .steps {
-        grid-template-columns: 1fr;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 32px;
+        margin-top: 48px;
+        position: relative;
+        align-items: stretch;
       }
 
       .steps::before {
-        display: none;
+        content: "";
+        position: absolute;
+        left: 24px;
+        right: 24px;
+        top: 18px;
+        height: 1px;
+        background: linear-gradient(90deg, rgba(214, 194, 161, 0.28), rgba(214, 194, 161, 0.08));
+        pointer-events: none;
       }
 
-      #nav .links a:not(.cta-nav) {
-        display: none;
+      .step {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        min-height: 100%;
+        padding: 24px;
+        border-radius: 22px;
+        border: 1px solid rgba(214, 194, 161, 0.12);
+        background:
+          linear-gradient(180deg, rgba(245, 241, 232, 0.045), rgba(245, 241, 232, 0.02)), rgba(14, 14, 17, 0.8);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        position: relative;
+        overflow: hidden;
+        transition:
+          transform 0.28s ease,
+          border-color 0.28s ease,
+          background 0.28s ease,
+          box-shadow 0.28s ease;
       }
-    }
-  </style>
-</head>
 
-<body>
+      .step::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at top left, rgba(214, 194, 161, 0.12), transparent 42%);
+        opacity: 0.9;
+        pointer-events: none;
+      }
 
-  <!-- NAV -->
-  <nav id="nav">
-    <a class="brand" href="#">
-      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <g transform="rotate(-90,260.13194,256)">
-          <g transform="translate(36.014263,-2.8911911)">
-            <g transform="translate(-30.368362,-3.4481067)">
-              <path fill="#d6c2a1"
-                d="m 244.32357,149.16473 -10.01563,0.0156 c -57.53861,0.093 -105.26048,46.15504 -106.96093,104.03711 -1.73338,59.00207 45.00777,108.57781 104.00976,110.3164 1.20125,0.0354 11.63792,0.0178 12.40091,0.0195 l -0.54153,-33.98827 c -0.87935,-0.002 -10.40466,0.23256 -10.86328,0.21856 h -0.002 c -40.76556,-1.20124 -72.45152,-34.80875 -71.2539,-75.57422 1.17466,-39.98413 42.30839,-71.29131 81.99263,-71.35596 z M 462.20248,252.32879 C 460.1777,159.08325 385.18893,81.506054 291.26498,78.709664 c 1.21234,0.0348 -0.19927,-0.17476 -4.33594,-0.18359 l -42.76172,-0.0918 c 0.12009,19.88775 -0.31143,77.263466 -1.14649,104.494136 15.17023,-0.56443 30.11758,0.48088 45.12105,1.05469 39.69877,1.18196 70.13648,33.51604 68.94922,74.34961 -1.16878,40.19728 -32.58709,71.09761 -70.57226,71.16015 l -43.3086,0.0723 c 0.19704,36.09177 0.39683,72.18354 0.5957,108.2753 l 43.00195,0.0156 c 96.29108,-0.15719 172.59392,-81.27751 175.36133,-176.45703 0.0883,-3.03855 0.0985,-6.06239 0.0332,-9.07032 z M 244.1684,78.437824 C 143.41461,78.593024 49.811324,155.49152 46.810186,252.89683 c -3.059223,99.29069 79.163534,182.14728 182.503904,185.05078 1.93202,0.0543 3.64454,0.0241 5.1543,0.0273 l 9.36914,-0.13719 -0.12597,-43.90376 c -1.50642,-0.004 -11.99041,0.0134 -13.09278,-0.0176 C 151.202,391.68502 89.69938,329.19335 92.0094,254.21909 94.27517,180.68104 157.16137,122.57167 234.5055,122.45152 l 9.98437,-0.0156 z" />
+      .step:hover {
+        transform: translateY(-6px);
+        border-color: rgba(214, 194, 161, 0.24);
+        box-shadow: 0 22px 48px rgba(0, 0, 0, 0.28);
+      }
+
+      .step-header {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding-bottom: 18px;
+        border-bottom: 1px solid rgba(214, 194, 161, 0.08);
+      }
+
+      .step-num {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #7b6853, #d6c2a1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        font-weight: 800;
+        color: #140f0a;
+        flex-shrink: 0;
+        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
+      }
+
+      .step-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        min-width: 0;
+      }
+
+      .step-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-primary);
+        letter-spacing: -0.02em;
+      }
+
+      .step-desc {
+        font-size: 14px;
+        color: var(--text-muted);
+        line-height: 1.6;
+        position: relative;
+        z-index: 1;
+      }
+
+      .code-block {
+        background: rgba(14, 14, 17, 0.92);
+        border: 1px solid rgba(214, 194, 161, 0.12);
+        border-radius: 10px;
+        padding: 14px 18px;
+        font-family: "JetBrains Mono", "Courier New", monospace;
+        font-size: 13px;
+        color: var(--accent);
+        margin-top: 4px;
+        position: relative;
+        overflow: hidden;
+        z-index: 1;
+      }
+
+      .code-block::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: linear-gradient(180deg, #7b6853, #d6c2a1);
+        border-radius: 10px 0 0 10px;
+      }
+
+      .code-comment {
+        color: rgba(180, 170, 154, 0.56);
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+
+      /* INSTALL */
+      #install {
+        padding: clamp(60px, 8vw, 100px) clamp(16px, 8vw, 80px);
+        max-width: 1100px;
+        margin: 0 auto;
+        text-align: center;
+      }
+
+      .install-box {
+        display: inline-flex;
+        align-items: center;
+        gap: 16px;
+        background: rgba(14, 14, 17, 0.94);
+        border: 1px solid rgba(214, 194, 161, 0.16);
+        border-radius: 14px;
+        padding: 16px 24px;
+        margin: 32px 0 36px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 15px;
+        color: var(--accent);
+      }
+
+      .install-box .prompt {
+        color: rgba(180, 170, 154, 0.56);
+        user-select: none;
+      }
+
+      .copy-btn {
+        background: rgba(214, 194, 161, 0.08);
+        border: 1px solid rgba(214, 194, 161, 0.18);
+        color: var(--accent);
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-family: "Inter", sans-serif;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+        flex-shrink: 0;
+      }
+
+      .copy-btn:hover {
+        background: rgba(214, 194, 161, 0.14);
+      }
+
+      .copy-btn.copied {
+        color: var(--success);
+        border-color: rgba(145, 197, 138, 0.32);
+      }
+
+      #install .hero-btns {
+        justify-content: center;
+      }
+
+      /* FOOTER */
+      footer {
+        border-top: 1px solid var(--line-soft);
+        padding: 32px clamp(16px, 8vw, 80px);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+        color: rgba(180, 170, 154, 0.44);
+        font-size: 12px;
+      }
+
+      footer a {
+        color: rgba(208, 197, 179, 0.62);
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+
+      footer a:hover {
+        color: var(--accent);
+      }
+
+      .footer-brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .footer-brand svg {
+        width: 22px;
+        height: 22px;
+      }
+
+      .footer-links {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+
+      /* REVEAL */
+      .reveal {
+        opacity: 0;
+        transform: translateY(28px);
+        transition:
+          opacity 0.7s ease-out,
+          transform 0.7s ease-out;
+      }
+
+      .reveal.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .reveal-delay-1 {
+        transition-delay: 0.1s;
+      }
+
+      .reveal-delay-2 {
+        transition-delay: 0.2s;
+      }
+
+      .reveal-delay-3 {
+        transition-delay: 0.3s;
+      }
+
+      .reveal-delay-4 {
+        transition-delay: 0.4s;
+      }
+
+      .reveal-delay-5 {
+        transition-delay: 0.5s;
+      }
+
+      @media (max-width: 600px) {
+        .features-grid,
+        .steps {
+          grid-template-columns: 1fr;
+        }
+
+        .steps::before {
+          display: none;
+        }
+
+        #nav .links a:not(.cta-nav) {
+          display: none;
+        }
+      }
+
+      @media (max-width: 980px) {
+        .hero-content {
+          grid-template-columns: 1fr;
+          padding-top: 112px;
+          padding-bottom: 110px;
+        }
+
+        .hero-proof {
+          max-width: 560px;
+        }
+      }
+
+      @media (max-width: 700px) {
+        .hero-copy h1 {
+          max-width: none;
+        }
+
+        .hero-btns {
+          justify-content: flex-start;
+        }
+
+        .btn-primary,
+        .btn-secondary {
+          width: 100%;
+          justify-content: center;
+        }
+
+        #music-btn {
+          right: 18px;
+          bottom: 18px;
+        }
+
+        .scroll-hint {
+          bottom: 22px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- NAV -->
+    <nav id="nav">
+      <a class="brand" href="#">
+        <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+          <g transform="rotate(-90,260.13194,256)">
+            <g transform="translate(36.014263,-2.8911911)">
+              <g transform="translate(-30.368362,-3.4481067)">
+                <path
+                  fill="#d6c2a1"
+                  d="m 244.32357,149.16473 -10.01563,0.0156 c -57.53861,0.093 -105.26048,46.15504 -106.96093,104.03711 -1.73338,59.00207 45.00777,108.57781 104.00976,110.3164 1.20125,0.0354 11.63792,0.0178 12.40091,0.0195 l -0.54153,-33.98827 c -0.87935,-0.002 -10.40466,0.23256 -10.86328,0.21856 h -0.002 c -40.76556,-1.20124 -72.45152,-34.80875 -71.2539,-75.57422 1.17466,-39.98413 42.30839,-71.29131 81.99263,-71.35596 z M 462.20248,252.32879 C 460.1777,159.08325 385.18893,81.506054 291.26498,78.709664 c 1.21234,0.0348 -0.19927,-0.17476 -4.33594,-0.18359 l -42.76172,-0.0918 c 0.12009,19.88775 -0.31143,77.263466 -1.14649,104.494136 15.17023,-0.56443 30.11758,0.48088 45.12105,1.05469 39.69877,1.18196 70.13648,33.51604 68.94922,74.34961 -1.16878,40.19728 -32.58709,71.09761 -70.57226,71.16015 l -43.3086,0.0723 c 0.19704,36.09177 0.39683,72.18354 0.5957,108.2753 l 43.00195,0.0156 c 96.29108,-0.15719 172.59392,-81.27751 175.36133,-176.45703 0.0883,-3.03855 0.0985,-6.06239 0.0332,-9.07032 z M 244.1684,78.437824 C 143.41461,78.593024 49.811324,155.49152 46.810186,252.89683 c -3.059223,99.29069 79.163534,182.14728 182.503904,185.05078 1.93202,0.0543 3.64454,0.0241 5.1543,0.0273 l 9.36914,-0.13719 -0.12597,-43.90376 c -1.50642,-0.004 -11.99041,0.0134 -13.09278,-0.0176 C 151.202,391.68502 89.69938,329.19335 92.0094,254.21909 94.27517,180.68104 157.16137,122.57167 234.5055,122.45152 l 9.98437,-0.0156 z"
+                />
+              </g>
             </g>
           </g>
-        </g>
-      </svg>
-      Shellular
-    </a>
-    <div class="links">
-      <a href="#features">Features</a>
-      <a href="#how">How it works</a>
-      <a href="#install" class="cta-nav">Get Started</a>
-    </div>
-  </nav>
-
-  <audio id="bg-music" src="music.mp3" loop preload="none"></audio>
-
-  <!-- HERO -->
-  <div id="hero">
-    <canvas id="wave-canvas"></canvas>
-
-    <div id="hero-name">Shellular</div>
-
-    <div id="logo-float">
-      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <g transform="rotate(-90,260.13194,256)">
-          <g transform="translate(36.014263,-2.8911911)">
-            <g transform="translate(-30.368362,-3.4481067)">
-              <path fill="#d6c2a1"
-                d="m 244.32357,149.16473 -10.01563,0.0156 c -57.53861,0.093 -105.26048,46.15504 -106.96093,104.03711 -1.73338,59.00207 45.00777,108.57781 104.00976,110.3164 1.20125,0.0354 11.63792,0.0178 12.40091,0.0195 l -0.54153,-33.98827 c -0.87935,-0.002 -10.40466,0.23256 -10.86328,0.21856 h -0.002 c -40.76556,-1.20124 -72.45152,-34.80875 -71.2539,-75.57422 1.17466,-39.98413 42.30839,-71.29131 81.99263,-71.35596 z M 462.20248,252.32879 C 460.1777,159.08325 385.18893,81.506054 291.26498,78.709664 c 1.21234,0.0348 -0.19927,-0.17476 -4.33594,-0.18359 l -42.76172,-0.0918 c 0.12009,19.88775 -0.31143,77.263466 -1.14649,104.494136 15.17023,-0.56443 30.11758,0.48088 45.12105,1.05469 39.69877,1.18196 70.13648,33.51604 68.94922,74.34961 -1.16878,40.19728 -32.58709,71.09761 -70.57226,71.16015 l -43.3086,0.0723 c 0.19704,36.09177 0.39683,72.18354 0.5957,108.2753 l 43.00195,0.0156 c 96.29108,-0.15719 172.59392,-81.27751 175.36133,-176.45703 0.0883,-3.03855 0.0985,-6.06239 0.0332,-9.07032 z M 244.1684,78.437824 C 143.41461,78.593024 49.811324,155.49152 46.810186,252.89683 c -3.059223,99.29069 79.163534,182.14728 182.503904,185.05078 1.93202,0.0543 3.64454,0.0241 5.1543,0.0273 l 9.36914,-0.13719 -0.12597,-43.90376 c -1.50642,-0.004 -11.99041,0.0134 -13.09278,-0.0176 C 151.202,391.68502 89.69938,329.19335 92.0094,254.21909 94.27517,180.68104 157.16137,122.57167 234.5055,122.45152 l 9.98437,-0.0156 z" />
-            </g>
-          </g>
-        </g>
-      </svg>
-      <div id="logo-reflection"></div>
-    </div>
-
-    <canvas id="wave-overlay"></canvas>
-
-    <div class="scroll-hint">
-      scroll
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polyline points="6 9 12 15 18 9" />
-      </svg>
-    </div>
-
-    <button id="music-btn" aria-label="Play background music">
-      <svg id="music-icon-play" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z" />
-      </svg>
-      <svg id="music-icon-pause" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="display:none">
-        <rect x="6" y="4" width="4" height="16" rx="1" />
-        <rect x="14" y="4" width="4" height="16" rx="1" />
-      </svg>
-    </button>
-  </div>
-
-  <!-- FEATURES -->
-  <div class="ocean-divider"></div>
-  <section id="features">
-    <div class="hero-intro">
-      <div class="badges reveal">
-        <span class="badge">Open Source</span>
-        <span class="badge">Zero Config</span>
-        <span class="badge">Cross Platform</span>
+        </svg>
+        Shellular
+      </a>
+      <div class="links">
+        <a href="#how">How it works</a>
+        <a href="#features">Features</a>
+        <a href="#install" class="cta-nav">Get Started</a>
       </div>
-      <h1 class="reveal reveal-delay-1">Code, review and ship from anywhere.</h1>
-      <p class="subtitle reveal reveal-delay-2">Full terminal access, filesystem explorer, and AI-assisted coding — from
-        any device, anywhere in the world.</p>
-      <div class="hero-btns reveal reveal-delay-3">
-        <a href="#install" class="btn-primary">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <polyline points="4 17 10 11 4 5" />
-            <line x1="12" y1="19" x2="20" y2="19" />
-          </svg>
-          Get started free
-        </a>
-        <a href="https://github.com/foxbiz/shellular" class="btn-secondary" target="_blank" rel="noopener">
+    </nav>
+
+    <audio id="bg-music" src="music.mp3" loop preload="none"></audio>
+
+    <!-- HERO -->
+    <div id="hero">
+      <canvas id="wave-canvas"></canvas>
+
+      <div class="hero-content">
+        <div class="hero-copy">
+          <h1 class="reveal reveal-delay-1">Use your dev machine from your phone.</h1>
+          <p class="subtitle reveal reveal-delay-2">
+            Use Codex, Claude Code, or OpenCode on the machine you already develop on. Open terminals, edit files, run
+            commands, and keep shipping when you're away from your desk.
+          </p>
+          <div class="hero-btns reveal reveal-delay-3">
+            <a href="#install" class="btn-primary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="4 17 10 11 4 5" />
+                <line x1="12" y1="19" x2="20" y2="19" />
+              </svg>
+              Get Shellular
+            </a>
+            <a href="https://github.com/foxbiz/shellular" class="btn-secondary" target="_blank" rel="noopener">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M12 2C6.477 2 2 6.484 2 12.021c0 4.428 2.865 8.185 6.839 9.504.5.092.682-.217.682-.482 0-.237-.009-.868-.014-1.703-2.782.605-3.369-1.342-3.369-1.342-.454-1.154-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.744 0 .267.18.578.688.48C19.138 20.203 22 16.447 22 12.021 22 6.484 17.523 2 12 2z"
+                />
+              </svg>
+              View on GitHub
+            </a>
+          </div>
+        </div>
+
+        <aside class="hero-proof reveal reveal-delay-3" aria-label="Product summary">
+          <div class="hero-proof-header">
+            <span class="hero-proof-dot"></span>
+            <span class="hero-proof-title">Your coding setup, now pocket-sized</span>
+          </div>
+          <div class="hero-proof-body">
+            <div>
+              <p class="hero-proof-subtitle">
+                Turn your phone into a live window into your development machine so you can code, review, and fix things
+                wherever you are.
+              </p>
+            </div>
+            <ul class="hero-proof-list">
+              <li>Run Codex, Claude Code, and OpenCode from your phone.</li>
+              <li>Open terminals and project files you use at your desk.</li>
+              <li>Keep coding on the go without carrying your laptop everywhere.</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+
+      <canvas id="wave-overlay"></canvas>
+
+      <div class="scroll-hint">
+        scroll
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </div>
+
+      <button id="music-btn" aria-label="Play background music">
+        <svg id="music-icon-play" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z" />
+        </svg>
+        <svg id="music-icon-pause" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="display: none">
+          <rect x="6" y="4" width="4" height="16" rx="1" />
+          <rect x="14" y="4" width="4" height="16" rx="1" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- HOW IT WORKS -->
+    <div id="how">
+      <div id="how-inner">
+        <h2 class="section-title reveal reveal-delay-1">Three steps to <span>code anywhere</span></h2>
+        <p class="section-sub reveal reveal-delay-2">
+          No accounts. No cloud subscription. Just a local CLI and a browser.
+        </p>
+        <div class="steps">
+          <div class="step reveal">
+            <div class="step-header">
+              <div class="step-num">1</div>
+              <div class="step-meta">
+                <div class="step-title">Start the CLI on your machine</div>
+              </div>
+            </div>
+            <div class="step-desc">
+              Run the CLI agent on your laptop, desktop, or cloud server. It starts the WebSocket relay and generates a
+              session token.
+            </div>
+            <div class="code-block">
+              <div class="code-comment"># works on macOS, Linux, Windows</div>
+              npx shellular-cli start
+            </div>
+          </div>
+          <div class="step reveal reveal-delay-1">
+            <div class="step-header">
+              <div class="step-num">2</div>
+              <div class="step-meta">
+                <div class="step-title">Connect from any device</div>
+              </div>
+            </div>
+            <div class="step-desc">
+              Scan the QR code or paste the URL into Shellular on your mobile. Enter the 8-char session token — you're
+              connected.
+            </div>
+            <div class="code-block">
+              <div class="code-comment"># or open directly in your browser</div>
+              https://your-server:3000/&lt;token&gt;
+            </div>
+          </div>
+          <div class="step reveal reveal-delay-2">
+            <div class="step-header">
+              <div class="step-num">3</div>
+              <div class="step-meta">
+                <div class="step-title">Code, commit, ship</div>
+              </div>
+            </div>
+            <div class="step-desc">
+              Your full terminal and filesystem are live. Read files, run builds, commit code, and get AI help — all
+              from your phone.
+            </div>
+            <div class="code-block">
+              <div class="code-comment"># your entire dev stack, anywhere</div>
+              git commit -m "shipped from mobile"
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FEATURES -->
+    <div class="ocean-divider"></div>
+    <section id="features">
+      <div class="features-header">
+        <div class="section-label reveal">Everything you need</div>
+        <h2 class="section-title reveal reveal-delay-1">Your dev environment,<br /><span>untethered</span></h2>
+        <p class="section-sub reveal reveal-delay-2">
+          Everything you need to stay productive from your phone: your coding agents, your terminal, your files, and the
+          machine that already has your tools and repos.
+        </p>
+      </div>
+      <div class="features-grid">
+        <div class="feat-card reveal">
+          <div class="feat-icon">⚡</div>
+          <div class="feat-title">Run Your Favorite Coding Agents</div>
+          <div class="feat-desc">
+            Use OpenAI Codex, Claude Code, and OpenCode on the machine where your code already lives. No stripped-down
+            mobile workflow.
+          </div>
+        </div>
+        <div class="feat-card reveal reveal-delay-1">
+          <div class="feat-icon">🗂️</div>
+          <div class="feat-title">Access Real Project Files</div>
+          <div class="feat-desc">
+            Browse, open, edit, rename, and manage the files on your dev machine directly from your phone, right inside
+            your mobile editor.
+          </div>
+        </div>
+        <div class="feat-card reveal reveal-delay-2">
+          <div class="feat-icon">📡</div>
+          <div class="feat-title">Your Terminal, Anywhere</div>
+          <div class="feat-desc">
+            Open a live terminal to your machine, run commands, kick off builds, inspect logs, and handle quick fixes
+            without waiting to get back to your desk.
+          </div>
+        </div>
+        <div class="feat-card reveal reveal-delay-3">
+          <div class="feat-icon">📱</div>
+          <div class="feat-title">Built For Coding On The Go</div>
+          <div class="feat-desc">
+            When you need to review a PR, patch a bug, or keep momentum while traveling, Shellular gives you a usable
+            mobile workflow instead of a compromised fallback.
+          </div>
+        </div>
+        <div class="feat-card reveal reveal-delay-4">
+          <div class="feat-icon">🚀</div>
+          <div class="feat-title">Fast To Start</div>
+          <div class="feat-desc">
+            Start the CLI, connect from your phone, and get into your environment in seconds. No extra machine setup
+            every time you want to use it.
+          </div>
+        </div>
+        <div class="feat-card reveal reveal-delay-5">
+          <div class="feat-icon">🧠</div>
+          <div class="feat-title">Stay In Your Existing Workflow</div>
+          <div class="feat-desc">
+            Keep using the repos, tools, shells, and agent-driven workflows you already rely on. Shellular extends your
+            setup to your phone instead of replacing it.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- INSTALL CTA -->
+    <section id="install">
+      <div class="section-label reveal">Ready to start?</div>
+      <h2 class="section-title reveal reveal-delay-1" style="margin: 0 auto 16px">
+        One command.<br /><span>Code from anywhere.</span>
+      </h2>
+      <p class="section-sub reveal reveal-delay-2" style="margin: 0 auto 0">No signup required.</p>
+      <div style="display: flex; justify-content: center">
+        <div class="install-box reveal reveal-delay-3">
+          <span class="prompt">$</span>
+          <span>npx shellular-cli start</span>
+          <button class="copy-btn" id="copy-btn">Copy</button>
+        </div>
+      </div>
+      <div class="hero-btns reveal reveal-delay-4">
+        <a href="https://github.com/foxbiz/shellular" class="btn-primary" target="_blank" rel="noopener">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <path
-              d="M12 2C6.477 2 2 6.484 2 12.021c0 4.428 2.865 8.185 6.839 9.504.5.092.682-.217.682-.482 0-.237-.009-.868-.014-1.703-2.782.605-3.369-1.342-3.369-1.342-.454-1.154-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.744 0 .267.18.578.688.48C19.138 20.203 22 16.447 22 12.021 22 6.484 17.523 2 12 2z" />
+              d="M12 2C6.477 2 2 6.484 2 12.021c0 4.428 2.865 8.185 6.839 9.504.5.092.682-.217.682-.482 0-.237-.009-.868-.014-1.703-2.782.605-3.369-1.342-3.369-1.342-.454-1.154-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.744 0 .267.18.578.688.48C19.138 20.203 22 16.447 22 12.021 22 6.484 17.523 2 12 2z"
+            />
           </svg>
-          View on GitHub
+          Star on GitHub
         </a>
+        <a href="#features" class="btn-secondary">Learn more</a>
       </div>
-    </div>
-    <div class="features-header">
-      <div class="section-label reveal">Everything you need</div>
-      <h2 class="section-title reveal reveal-delay-1">Your dev environment,<br><span>untethered</span></h2>
-      <p class="section-sub reveal reveal-delay-2">Shellular connects any device to your full development stack over a
-        secure WebSocket relay — no VPN, no port forwarding needed.</p>
-    </div>
-    <div class="features-grid">
-      <div class="feat-card reveal">
-        <div class="feat-icon">⚡</div>
-        <div class="feat-title">Full Terminal Access</div>
-        <div class="feat-desc">xterm.js-powered PTY sessions with full color output, resize support, and shell history.
-          Your real shell, on any screen.</div>
-      </div>
-      <div class="feat-card reveal reveal-delay-1">
-        <div class="feat-icon">🗂️</div>
-        <div class="feat-title">Filesystem Explorer</div>
-        <div class="feat-desc">Browse, read, write, rename and delete files on the remote machine — all path-traversal
-          protected and streamed over WebSocket.</div>
-      </div>
-      <div class="feat-card reveal reveal-delay-2">
-        <div class="feat-icon">📡</div>
-        <div class="feat-title">Zero Config Relay</div>
-        <div class="feat-desc">Run <code
-            style="font-family:JetBrains Mono,monospace;font-size:12px;color:#d6c2a1">npx shellular-cli start</code>,
-          scan the QR code, and you're in. No firewall rules, no tunnelling setup.</div>
-      </div>
-      <div class="feat-card reveal reveal-delay-3">
-        <div class="feat-icon">📱</div>
-        <div class="feat-title">Mobile-First UX</div>
-        <div class="feat-desc">Built as an Acode plugin — lives right inside your mobile editor. Sidebar integration,
-          touch gestures, and adaptive layouts.</div>
-      </div>
-      <div class="feat-card reveal reveal-delay-4">
-        <div class="feat-icon">🔐</div>
-        <div class="feat-title">Secure Sessions</div>
-        <div class="feat-desc">Each session uses a short-lived 8-char token. The relay holds nothing — messages are
-          forwarded and dropped immediately.</div>
-      </div>
-      <div class="feat-card reveal reveal-delay-5">
-        <div class="feat-icon">🤖</div>
-        <div class="feat-title">AI-Ready</div>
-        <div class="feat-desc">Designed for AI-assisted coding workflows. Feed your remote codebase into any LLM without
-          leaving your mobile editor.</div>
-      </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- HOW IT WORKS -->
-  <div id="how">
-    <div id="how-inner">
-      <h2 class="section-title reveal reveal-delay-1">Three steps to <span>code anywhere</span></h2>
-      <p class="section-sub reveal reveal-delay-2">No accounts. No cloud subscription. Just a local CLI and a browser.
-      </p>
-      <div class="steps">
-        <div class="step reveal">
-          <div class="step-header">
-            <div class="step-num">1</div>
-            <div class="step-meta">
-              <div class="step-title">Start the CLI on your machine</div>
-            </div>
-          </div>
-          <div class="step-desc">Run the CLI agent on your laptop, desktop, or cloud server. It starts the WebSocket
-            relay and generates a session token.</div>
-          <div class="code-block">
-            <div class="code-comment"># works on macOS, Linux, Windows</div>npx shellular-cli start
-          </div>
-        </div>
-        <div class="step reveal reveal-delay-1">
-          <div class="step-header">
-            <div class="step-num">2</div>
-            <div class="step-meta">
-              <div class="step-title">Connect from any device</div>
-            </div>
-          </div>
-          <div class="step-desc">Scan the QR code or paste the URL into Shellular on your mobile. Enter the 8-char
-            session token — you're connected.</div>
-          <div class="code-block">
-            <div class="code-comment"># or open directly in your browser</div>https://your-server:3000/&lt;token&gt;
-          </div>
-        </div>
-        <div class="step reveal reveal-delay-2">
-          <div class="step-header">
-            <div class="step-num">3</div>
-            <div class="step-meta">
-              <div class="step-title">Code, commit, ship</div>
-            </div>
-          </div>
-          <div class="step-desc">Your full terminal and filesystem are live. Read files, run builds, commit code, and
-            get AI help — all from your phone.</div>
-          <div class="code-block">
-            <div class="code-comment"># your entire dev stack, anywhere</div>git commit -m "shipped from mobile"
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- INSTALL CTA -->
-  <section id="install">
-    <div class="section-label reveal">Ready to start?</div>
-    <h2 class="section-title reveal reveal-delay-1" style="margin:0 auto 16px">One command.<br><span>Code from
-        anywhere.</span></h2>
-    <p class="section-sub reveal reveal-delay-2" style="margin:0 auto 0">No signup required. Works anywhere Node.js
-      runs.</p>
-    <div style="display:flex;justify-content:center">
-      <div class="install-box reveal reveal-delay-3">
-        <span class="prompt">$</span>
-        <span>npx shellular-cli start</span>
-        <button class="copy-btn" id="copy-btn">Copy</button>
-      </div>
-    </div>
-    <div class="hero-btns reveal reveal-delay-4">
-      <a href="https://github.com/foxbiz/shellular" class="btn-primary" target="_blank" rel="noopener">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-          <path
-            d="M12 2C6.477 2 2 6.484 2 12.021c0 4.428 2.865 8.185 6.839 9.504.5.092.682-.217.682-.482 0-.237-.009-.868-.014-1.703-2.782.605-3.369-1.342-3.369-1.342-.454-1.154-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.744 0 .267.18.578.688.48C19.138 20.203 22 16.447 22 12.021 22 6.484 17.523 2 12 2z" />
-        </svg>
-        Star on GitHub
-      </a>
-      <a href="#features" class="btn-secondary">Learn more</a>
-    </div>
-    <p class="reveal reveal-delay-5" style="margin-top:32px;color:rgba(180,170,154,.38);font-size:12px">
-      Built by <a href="https://foxbiz.io" style="color:rgba(208,197,179,.62);text-decoration:none" target="_blank"
-        rel="noopener">Foxbiz Software Pvt Ltd</a> · Proprietary License
-    </p>
-  </section>
-
-  <!-- FOOTER -->
-  <footer>
-    <div class="footer-brand">
-      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <g transform="rotate(-90,260.13194,256)">
-          <g transform="translate(36.014263,-2.8911911)">
-            <g transform="translate(-30.368362,-3.4481067)">
-              <path fill="#d6c2a1"
-                d="m 244.32357,149.16473 -10.01563,0.0156 c -57.53861,0.093 -105.26048,46.15504 -106.96093,104.03711 -1.73338,59.00207 45.00777,108.57781 104.00976,110.3164 1.20125,0.0354 11.63792,0.0178 12.40091,0.0195 l -0.54153,-33.98827 c -0.87935,-0.002 -10.40466,0.23256 -10.86328,0.21856 h -0.002 c -40.76556,-1.20124 -72.45152,-34.80875 -71.2539,-75.57422 1.17466,-39.98413 42.30839,-71.29131 81.99263,-71.35596 z M 462.20248,252.32879 C 460.1777,159.08325 385.18893,81.506054 291.26498,78.709664 c 1.21234,0.0348 -0.19927,-0.17476 -4.33594,-0.18359 l -42.76172,-0.0918 c 0.12009,19.88775 -0.31143,77.263466 -1.14649,104.494136 15.17023,-0.56443 30.11758,0.48088 45.12105,1.05469 39.69877,1.18196 70.13648,33.51604 68.94922,74.34961 -1.16878,40.19728 -32.58709,71.09761 -70.57226,71.16015 l -43.3086,0.0723 c 0.19704,36.09177 0.39683,72.18354 0.5957,108.2753 l 43.00195,0.0156 c 96.29108,-0.15719 172.59392,-81.27751 175.36133,-176.45703 0.0883,-3.03855 0.0985,-6.06239 0.0332,-9.07032 z M 244.1684,78.437824 C 143.41461,78.593024 49.811324,155.49152 46.810186,252.89683 c -3.059223,99.29069 79.163534,182.14728 182.503904,185.05078 1.93202,0.0543 3.64454,0.0241 5.1543,0.0273 l 9.36914,-0.13719 -0.12597,-43.90376 c -1.50642,-0.004 -11.99041,0.0134 -13.09278,-0.0176 C 151.202,391.68502 89.69938,329.19335 92.0094,254.21909 94.27517,180.68104 157.16137,122.57167 234.5055,122.45152 l 9.98437,-0.0156 z" />
+    <!-- FOOTER -->
+    <footer>
+      <div class="footer-brand">
+        <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+          <g transform="rotate(-90,260.13194,256)">
+            <g transform="translate(36.014263,-2.8911911)">
+              <g transform="translate(-30.368362,-3.4481067)">
+                <path
+                  fill="#d6c2a1"
+                  d="m 244.32357,149.16473 -10.01563,0.0156 c -57.53861,0.093 -105.26048,46.15504 -106.96093,104.03711 -1.73338,59.00207 45.00777,108.57781 104.00976,110.3164 1.20125,0.0354 11.63792,0.0178 12.40091,0.0195 l -0.54153,-33.98827 c -0.87935,-0.002 -10.40466,0.23256 -10.86328,0.21856 h -0.002 c -40.76556,-1.20124 -72.45152,-34.80875 -71.2539,-75.57422 1.17466,-39.98413 42.30839,-71.29131 81.99263,-71.35596 z M 462.20248,252.32879 C 460.1777,159.08325 385.18893,81.506054 291.26498,78.709664 c 1.21234,0.0348 -0.19927,-0.17476 -4.33594,-0.18359 l -42.76172,-0.0918 c 0.12009,19.88775 -0.31143,77.263466 -1.14649,104.494136 15.17023,-0.56443 30.11758,0.48088 45.12105,1.05469 39.69877,1.18196 70.13648,33.51604 68.94922,74.34961 -1.16878,40.19728 -32.58709,71.09761 -70.57226,71.16015 l -43.3086,0.0723 c 0.19704,36.09177 0.39683,72.18354 0.5957,108.2753 l 43.00195,0.0156 c 96.29108,-0.15719 172.59392,-81.27751 175.36133,-176.45703 0.0883,-3.03855 0.0985,-6.06239 0.0332,-9.07032 z M 244.1684,78.437824 C 143.41461,78.593024 49.811324,155.49152 46.810186,252.89683 c -3.059223,99.29069 79.163534,182.14728 182.503904,185.05078 1.93202,0.0543 3.64454,0.0241 5.1543,0.0273 l 9.36914,-0.13719 -0.12597,-43.90376 c -1.50642,-0.004 -11.99041,0.0134 -13.09278,-0.0176 C 151.202,391.68502 89.69938,329.19335 92.0094,254.21909 94.27517,180.68104 157.16137,122.57167 234.5055,122.45152 l 9.98437,-0.0156 z"
+                />
+              </g>
             </g>
           </g>
-        </g>
-      </svg>
-      Shellular · v1.1.0
-    </div>
-    <div class="footer-links">
-      <a href="https://github.com/foxbiz/shellular" target="_blank" rel="noopener">GitHub</a>
-      <a href="https://acode.app" target="_blank" rel="noopener">Acode Plugin</a>
-      <a href="mailto:contact@foxbiz.io">Contact</a>
-    </div>
-    <span>© 2026 Foxbiz Software Pvt Ltd</span>
-  </footer>
+        </svg>
+        Shellular
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/foxbiz/shellular" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://acode.app" target="_blank" rel="noopener">Acode Plugin</a>
+        <a href="mailto:contact@foxbiz.io">Contact</a>
+      </div>
+      <span>© 2026 Foxbiz Software Pvt Ltd</span>
+    </footer>
 
-  <!-- ENGINE -->
-  <script type="module">
-    import { prepareWithSegments, walkLineRanges } from 'https://esm.sh/@chenglou/pretext@0.0.4';
+    <!-- ENGINE -->
+    <script type="module">
+      import { prepareWithSegments, walkLineRanges } from "https://esm.sh/@chenglou/pretext@0.0.4";
 
-    // Code token buckets: 0=foam/crest (dense+bright) → 3=abyss (sparse+dim)
-    const BUCKETS = [
-      ['{}', '()', '[]', '<>', '##', '//', '!=', '==', '=>', '+=', '&&', '||', '::', '??', '!', '++', '--', '**', '%%', '@@', '<<', '>>'],
-      ['function', 'return', 'const', 'import', 'export', 'async', 'await', 'class', 'extends', 'interface', 'typeof', 'readonly', 'private', 'public', 'static', 'declare', 'namespace', 'enum', 'override', 'abstract'],
-      ['let', 'var', 'if', 'for', 'while', 'do', 'try', 'catch', 'throw', 'new', 'delete', 'yield', 'switch', 'case', 'break', 'null', 'true', 'false', 'void', 'never', 'any', 'string', 'number', 'boolean', 'unknown'],
-      ['fn', 'ts', 'js', 'id', 'ok', 'px', 'ms', 'req', 'res', 'api', 'url', 'err', 'ctx', 'cfg', 'buf', 'ref', 'arr', 'map', 'src', 'dst', 'log', 'cmd', ':', '.', ',', ';', '_', '-'],
-    ];
+      // Code token buckets: 0=foam/crest (dense+bright) → 3=abyss (sparse+dim)
+      const BUCKETS = [
+        [
+          "{}",
+          "()",
+          "[]",
+          "<>",
+          "##",
+          "//",
+          "!=",
+          "==",
+          "=>",
+          "+=",
+          "&&",
+          "||",
+          "::",
+          "??",
+          "!",
+          "++",
+          "--",
+          "**",
+          "%%",
+          "@@",
+          "<<",
+          ">>",
+        ],
+        [
+          "function",
+          "return",
+          "const",
+          "import",
+          "export",
+          "async",
+          "await",
+          "class",
+          "extends",
+          "interface",
+          "typeof",
+          "readonly",
+          "private",
+          "public",
+          "static",
+          "declare",
+          "namespace",
+          "enum",
+          "override",
+          "abstract",
+        ],
+        [
+          "let",
+          "var",
+          "if",
+          "for",
+          "while",
+          "do",
+          "try",
+          "catch",
+          "throw",
+          "new",
+          "delete",
+          "yield",
+          "switch",
+          "case",
+          "break",
+          "null",
+          "true",
+          "false",
+          "void",
+          "never",
+          "any",
+          "string",
+          "number",
+          "boolean",
+          "unknown",
+        ],
+        [
+          "fn",
+          "ts",
+          "js",
+          "id",
+          "ok",
+          "px",
+          "ms",
+          "req",
+          "res",
+          "api",
+          "url",
+          "err",
+          "ctx",
+          "cfg",
+          "buf",
+          "ref",
+          "arr",
+          "map",
+          "src",
+          "dst",
+          "log",
+          "cmd",
+          ":",
+          ".",
+          ",",
+          ";",
+          "_",
+          "-",
+        ],
+      ];
 
-    const FONT = '13px "JetBrains Mono","Courier New",monospace';
-    const CELL_H = 20;
-    const TOKEN_GAP = 6;
+      const FONT = '13px "JetBrains Mono","Courier New",monospace';
+      const CELL_H = 20;
+      const TOKEN_GAP = 6;
 
-    // Wave layers — 5 overlapping sines for realistic ocean shape
-    const WAVES = [
-      { amp: 38, freq: 0.0090, speed: 0.45, phase: 0.0 },
-      { amp: 18, freq: 0.0175, speed: 0.72, phase: 1.1 },
-      { amp: 9, freq: 0.0320, speed: 1.18, phase: 2.3 },
-      { amp: 4, freq: 0.0540, speed: 1.85, phase: 0.7 },
-      { amp: 2, freq: 0.0880, speed: 2.90, phase: 1.8 },
-    ];
-    const FOAM = { amp: 7, freq: 0.185, speed: 4.8, phase: 0.4 };
+      // Wave layers — 5 overlapping sines for realistic ocean shape
+      const WAVES = [
+        { amp: 38, freq: 0.009, speed: 0.45, phase: 0.0 },
+        { amp: 18, freq: 0.0175, speed: 0.72, phase: 1.1 },
+        { amp: 9, freq: 0.032, speed: 1.18, phase: 2.3 },
+        { amp: 4, freq: 0.054, speed: 1.85, phase: 0.7 },
+        { amp: 2, freq: 0.088, speed: 2.9, phase: 1.8 },
+      ];
+      const FOAM = { amp: 7, freq: 0.185, speed: 4.8, phase: 0.4 };
 
-    let canvas, ctx, W, H, DPR;
-    let oCanvas, oCtx;
-    let logoEl, logoH;
-    let tokenWidths = new Map();
-    let rowTiles = [];
-    let baseY = 0;
-    let stars = [];
-    let elapsed = 0;
-    let lastTime = 0;
-    let measured = false;
+      let canvas, ctx, W, H, DPR;
+      let oCanvas, oCtx;
+      let tokenWidths = new Map();
+      let rowTiles = [];
+      let baseY = 0;
+      let stars = [];
+      let elapsed = 0;
+      let lastTime = 0;
+      let measured = false;
 
-    function surfaceY(x, t) {
-      let y = baseY;
-      for (const w of WAVES) y += w.amp * Math.sin(x * w.freq + t * w.speed + w.phase);
-      return y;
-    }
-
-    function surfaceDY(x, t) {
-      let dy = 0;
-      for (const w of WAVES) dy += w.amp * w.freq * Math.cos(x * w.freq + t * w.speed + w.phase);
-      return dy;
-    }
-
-    function foamAt(x, t) {
-      return 0.5 + 0.5 * Math.sin(x * FOAM.freq + t * FOAM.speed + FOAM.phase);
-    }
-
-    async function measureTokens() {
-      for (const bucket of BUCKETS) {
-        for (const tok of bucket) {
-          const prepared = prepareWithSegments(tok + ' ', FONT);
-          let w = 4;
-          walkLineRanges(prepared, 99999, line => { w = line.width; });
-          tokenWidths.set(tok, Math.max(w, 4));
-        }
-      }
-      measured = true;
-    }
-
-    function buildRowTiles() {
-      rowTiles = [];
-      const numRows = Math.ceil(H / CELL_H) + 2;
-      for (let row = 0; row < numRows; row++) {
-        const cellCY = row * CELL_H + CELL_H * 0.5;
-        const approxD = cellCY - baseY;
-        // surface rows scroll fast (breaking wave), abyss rows crawl (drag)
-        const speed = approxD < -60 ? 5
-          : approxD < 0 ? 12 + (1 + approxD / 60) * 40
-            : Math.max(5, 52 - approxD * 0.15);
-
-        const tokens = [], cumWidths = [0];
-        let totalW = 0, col = 0;
-        while (totalW < W * 2.5) {
-          // deeper rows favour heavier (lower bucket index) tokens
-          const depthBias = Math.min(3, Math.max(0, Math.round((approxD + 60) / 60)));
-          const bi = Math.min(3, (depthBias + (col % 3 === 0 ? 0 : 1)) % 4);
-          const bucket = BUCKETS[bi];
-          const tok = bucket[(row * 11 + col * 13 + bi * 17) % bucket.length];
-          const tw = (tokenWidths.get(tok) || 10) + TOKEN_GAP;
-          tokens.push(tok);
-          totalW += tw;
-          cumWidths.push(totalW);
-          col++;
-        }
-        rowTiles.push({ tokens, cumWidths, totalW, speed });
-      }
-    }
-
-    function init() {
-      canvas = document.getElementById('wave-canvas');
-      ctx = canvas.getContext('2d');
-      oCanvas = document.getElementById('wave-overlay');
-      oCtx = oCanvas.getContext('2d');
-      logoEl = document.getElementById('logo-float');
-      logoH = logoEl.offsetHeight || 220;
-      resize();
-    }
-
-    function resize() {
-      DPR = Math.min(window.devicePixelRatio || 1, 2);
-      W = canvas.clientWidth;
-      H = canvas.clientHeight;
-      canvas.width = W * DPR;
-      canvas.height = H * DPR;
-      ctx.scale(DPR, DPR);
-      oCanvas.width = W * DPR;
-      oCanvas.height = H * DPR;
-      oCtx.scale(DPR, DPR);
-      baseY = H * 0.62;
-      stars = Array.from({ length: 95 }, () => ({
-        x: Math.random() * W,
-        y: Math.random() * H * 0.5,
-        r: Math.random() * 1.3 + 0.3,
-        phase: Math.random() * Math.PI * 2,
-        speed: 0.7 + Math.random() * 1.6,
-      }));
-      if (measured) buildRowTiles();
-    }
-
-    function frame(ts) {
-      if (document.hidden) { requestAnimationFrame(frame); return; }
-      const dt = Math.min((ts - lastTime) / 1000, 0.05);
-      lastTime = ts;
-      elapsed += dt;
-      const t = elapsed;
-
-      // sky gradient
-      const grad = ctx.createLinearGradient(0, 0, 0, H);
-      grad.addColorStop(0, '#0d0d0f');
-      grad.addColorStop(0.42, '#141417');
-      grad.addColorStop(0.6, '#1a1816');
-      grad.addColorStop(1, '#0a0a0c');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, W, H);
-
-      // stars
-      for (const s of stars) {
-        if (s.y >= surfaceY(s.x, t) - 10) continue;
-        const a = (0.3 + 0.7 * (0.5 + 0.5 * Math.sin(t * s.speed + s.phase))) * 0.65;
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(241,231,214,${a.toFixed(3)})`;
-        ctx.fill();
+      function surfaceY(x, t) {
+        let y = baseY;
+        for (const w of WAVES) y += w.amp * Math.sin(x * w.freq + t * w.speed + w.phase);
+        return y;
       }
 
-      // logo position this frame (shared with repulsion math)
-      const sy = surfaceY(W * 0.5, t);
-      const bob = Math.sin(t * 1.1) * 5 + Math.sin(t * 0.67) * 3;
-      const logoX = W * 0.5;
-      const logoY = sy - logoH * 0.5 + bob;
-      const REPEL_R = 145;
+      function surfaceDY(x, t) {
+        let dy = 0;
+        for (const w of WAVES) dy += w.amp * w.freq * Math.cos(x * w.freq + t * w.speed + w.phase);
+        return dy;
+      }
 
-      // ocean ASCII text
-      if (measured) {
-        ctx.save();
-        ctx.textBaseline = 'middle';
-        ctx.font = FONT;
+      function foamAt(x, t) {
+        return 0.5 + 0.5 * Math.sin(x * FOAM.freq + t * FOAM.speed + FOAM.phase);
+      }
 
-        for (let row = 0; row < rowTiles.length; row++) {
-          const { tokens, cumWidths, totalW, speed } = rowTiles[row];
-          const cellCY = row * CELL_H + CELL_H * 0.5;
-          if (cellCY > H + CELL_H) break;
-
-          const scrollX = (elapsed * speed) % totalW;
-
-          // binary search for first visible token
-          let lo = 0, hi = tokens.length - 1;
-          while (lo < hi) {
-            const mid = (lo + hi) >> 1;
-            cumWidths[mid + 1] < scrollX ? (lo = mid + 1) : (hi = mid);
+      async function measureTokens() {
+        for (const bucket of BUCKETS) {
+          for (const tok of bucket) {
+            const prepared = prepareWithSegments(tok + " ", FONT);
+            let w = 4;
+            walkLineRanges(prepared, 99999, (line) => {
+              w = line.width;
+            });
+            tokenWidths.set(tok, Math.max(w, 4));
           }
-          const startIdx = lo > 0 ? lo - 1 : 0;
-          let x = cumWidths[startIdx] - scrollX;
-          let idx = startIdx;
+        }
+        measured = true;
+      }
 
-          while (x < W + 20) {
-            const tok = tokens[((idx % tokens.length) + tokens.length) % tokens.length];
+      function buildRowTiles() {
+        rowTiles = [];
+        const numRows = Math.ceil(H / CELL_H) + 2;
+        for (let row = 0; row < numRows; row++) {
+          const cellCY = row * CELL_H + CELL_H * 0.5;
+          const approxD = cellCY - baseY;
+          // surface rows scroll fast (breaking wave), abyss rows crawl (drag)
+          const speed =
+            approxD < -60 ? 5 : approxD < 0 ? 12 + (1 + approxD / 60) * 40 : Math.max(5, 52 - approxD * 0.15);
+
+          const tokens = [],
+            cumWidths = [0];
+          let totalW = 0,
+            col = 0;
+          while (totalW < W * 2.5) {
+            // deeper rows favour heavier (lower bucket index) tokens
+            const depthBias = Math.min(3, Math.max(0, Math.round((approxD + 60) / 60)));
+            const bi = Math.min(3, (depthBias + (col % 3 === 0 ? 0 : 1)) % 4);
+            const bucket = BUCKETS[bi];
+            const tok = bucket[(row * 11 + col * 13 + bi * 17) % bucket.length];
             const tw = (tokenWidths.get(tok) || 10) + TOKEN_GAP;
-            const cx = x + tw * 0.5;
-            const depth = cellCY - surfaceY(cx, t);
-            const foam = foamAt(cx, t);
+            tokens.push(tok);
+            totalW += tw;
+            cumWidths.push(totalW);
+            col++;
+          }
+          rowTiles.push({ tokens, cumWidths, totalW, speed });
+        }
+      }
 
-            // magnetic repulsion — push tokens away from logo
-            const rdx = cx - logoX, rdy = cellCY - logoY;
-            const rdist = Math.sqrt(rdx * rdx + rdy * rdy);
-            const repelAlpha = Math.min(1, rdist / (REPEL_R * 0.4));
-            let rx = x, ry = cellCY;
-            if (rdist < REPEL_R) {
-              const f = 1 - rdist / REPEL_R;
-              const push = f * f * 55;
-              const nx = rdist > 0.5 ? rdx / rdist : 0;
-              const ny = rdist > 0.5 ? rdy / rdist : 1;
-              rx = x + nx * push * 0.4;
-              ry = cellCY + ny * push;
+      function init() {
+        canvas = document.getElementById("wave-canvas");
+        ctx = canvas.getContext("2d");
+        oCanvas = document.getElementById("wave-overlay");
+        oCtx = oCanvas.getContext("2d");
+
+        resize();
+      }
+
+      function resize() {
+        DPR = Math.min(window.devicePixelRatio || 1, 2);
+        W = canvas.clientWidth;
+        H = canvas.clientHeight;
+        canvas.width = W * DPR;
+        canvas.height = H * DPR;
+        ctx.scale(DPR, DPR);
+        oCanvas.width = W * DPR;
+        oCanvas.height = H * DPR;
+        oCtx.scale(DPR, DPR);
+        baseY = H * 0.62;
+        stars = Array.from({ length: 95 }, () => ({
+          x: Math.random() * W,
+          y: Math.random() * H * 0.5,
+          r: Math.random() * 1.3 + 0.3,
+          phase: Math.random() * Math.PI * 2,
+          speed: 0.7 + Math.random() * 1.6,
+        }));
+        if (measured) buildRowTiles();
+      }
+
+      function frame(ts) {
+        if (document.hidden) {
+          requestAnimationFrame(frame);
+          return;
+        }
+        const dt = Math.min((ts - lastTime) / 1000, 0.05);
+        lastTime = ts;
+        elapsed += dt;
+        const t = elapsed;
+
+        // sky gradient
+        const grad = ctx.createLinearGradient(0, 0, 0, H);
+        grad.addColorStop(0, "#0d0d0f");
+        grad.addColorStop(0.42, "#141417");
+        grad.addColorStop(0.6, "#1a1816");
+        grad.addColorStop(1, "#0a0a0c");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+
+        // stars
+        for (const s of stars) {
+          if (s.y >= surfaceY(s.x, t) - 10) continue;
+          const a = (0.3 + 0.7 * (0.5 + 0.5 * Math.sin(t * s.speed + s.phase))) * 0.65;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(241,231,214,${a.toFixed(3)})`;
+          ctx.fill();
+        }
+
+        // logo position this frame (shared with repulsion math)
+        const sy = surfaceY(W * 0.5, t);
+        const bob = Math.sin(t * 1.1) * 5 + Math.sin(t * 0.67) * 3;
+
+        const REPEL_R = 145;
+
+        // ocean ASCII text
+        if (measured) {
+          ctx.save();
+          ctx.textBaseline = "middle";
+          ctx.font = FONT;
+
+          for (let row = 0; row < rowTiles.length; row++) {
+            const { tokens, cumWidths, totalW, speed } = rowTiles[row];
+            const cellCY = row * CELL_H + CELL_H * 0.5;
+            if (cellCY > H + CELL_H) break;
+
+            const scrollX = (elapsed * speed) % totalW;
+
+            // binary search for first visible token
+            let lo = 0,
+              hi = tokens.length - 1;
+            while (lo < hi) {
+              const mid = (lo + hi) >> 1;
+              cumWidths[mid + 1] < scrollX ? (lo = mid + 1) : (hi = mid);
             }
+            const startIdx = lo > 0 ? lo - 1 : 0;
+            let x = cumWidths[startIdx] - scrollX;
+            let idx = startIdx;
 
-            // loft boost — tokens above the logo in a narrow column glow brighter
-            const aboveLogo = cellCY < logoY - logoH * 0.3;
-            const loftDX = Math.abs(cx - logoX);
-            const loftDY = Math.max(0, logoY - cellCY);
-            const loftR = 110 + Math.sin(t * 0.6 + row * 0.4) * 20; // gently breathes
-            const loftBoost = aboveLogo && loftDX < loftR
-              ? (1 - loftDX / loftR) * Math.max(0, 1 - loftDY / 320) * 0.72
-              : 0;
+            while (x < W + 20) {
+              const tok = tokens[((idx % tokens.length) + tokens.length) % tokens.length];
+              const tw = (tokenWidths.get(tok) || 10) + TOKEN_GAP;
+              const cx = x + tw * 0.5;
+              const depth = cellCY - surfaceY(cx, t);
+              const foam = foamAt(cx, t);
 
-            if (depth < -70) {
-              // high sky: extremely sparse — but lofted column gets denser
-              const show = loftBoost > 0.08
-                ? ((idx * 71 + row * 31) & 0x7) === 0
-                : ((idx * 71 + row * 31) & 0xf) === 0;
-              if (show) {
-                ctx.globalAlpha = (0.07 + loftBoost * 0.38) * repelAlpha;
-                ctx.fillStyle = loftBoost > 0 ? `rgba(237,223,198,1)` : '#a89275';
+              // magnetic repulsion — push tokens away from logo
+              const rdx = cx,
+                rdy = cellCY;
+              const rdist = Math.sqrt(rdx * rdx + rdy * rdy);
+              const repelAlpha = Math.min(1, rdist / (REPEL_R * 0.4));
+              let rx = x,
+                ry = cellCY;
+              if (rdist < REPEL_R) {
+                const f = 1 - rdist / REPEL_R;
+                const push = f * f * 55;
+                const nx = rdist > 0.5 ? rdx / rdist : 0;
+                const ny = rdist > 0.5 ? rdy / rdist : 1;
+                rx = x + nx * push * 0.4;
+                ry = cellCY + ny * push;
+              }
+
+              // loft boost — tokens above the logo in a narrow column glow brighter
+              const aboveLogo = cellCY < 0 - 0 * 0.3;
+              const loftDX = Math.abs(cx);
+              const loftDY = Math.max(0 - cellCY);
+              const loftR = 110 + Math.sin(t * 0.6 + row * 0.4) * 20; // gently breathes
+              const loftBoost =
+                aboveLogo && loftDX < loftR ? (1 - loftDX / loftR) * Math.max(0, 1 - loftDY / 320) * 0.72 : 0;
+
+              if (depth < -70) {
+                // high sky: extremely sparse — but lofted column gets denser
+                const show =
+                  loftBoost > 0.08 ? ((idx * 71 + row * 31) & 0x7) === 0 : ((idx * 71 + row * 31) & 0xf) === 0;
+                if (show) {
+                  ctx.globalAlpha = (0.07 + loftBoost * 0.38) * repelAlpha;
+                  ctx.fillStyle = loftBoost > 0 ? `rgba(237,223,198,1)` : "#a89275";
+                  ctx.fillText(tok, rx, ry);
+                }
+              } else if (depth < -22) {
+                // sky haze
+                ctx.globalAlpha = (0.04 + 0.07 * (1 - (-depth - 22) / 48) + loftBoost * 0.45) * repelAlpha;
+                ctx.fillStyle = loftBoost > 0.1 ? `rgba(244,233,214,1)` : "#b59f83";
+                ctx.fillText(tok, rx, ry);
+              } else if (depth < 0) {
+                // spray / mist — transition into surface
+                const t01 = 1 - -depth / 22;
+                const foam2 = foam * t01;
+                ctx.globalAlpha = (0.18 + foam2 * 0.72) * repelAlpha;
+                ctx.fillStyle = `rgb(${Math.round(183 + foam2 * 54)},${Math.round(165 + foam2 * 52)},${Math.round(141 + foam2 * 48)})`;
+                ctx.fillText(tok, rx, ry);
+              } else if (depth < 10) {
+                // CREST — maximum brightness ★
+                ctx.globalAlpha = (0.8 + foam * 0.2) * repelAlpha;
+                ctx.fillStyle = `rgb(${Math.round(212 + foam * 30)},${Math.round(192 + foam * 28)},${Math.round(165 + foam * 26)})`;
+                ctx.fillText(tok, rx, ry);
+              } else if (depth < 50) {
+                // shallow — bright cyan fading to teal
+                const d01 = (depth - 10) / 40;
+                ctx.globalAlpha = (0.8 - d01 * 0.3) * repelAlpha;
+                ctx.fillStyle = `rgb(${Math.round(163 - d01 * 35)},${Math.round(142 - d01 * 34)},${Math.round(119 - d01 * 26)})`;
+                ctx.fillText(tok, rx, ry);
+              } else if (depth < 130) {
+                // mid — teal fading to navy
+                const d01 = (depth - 50) / 80;
+                ctx.globalAlpha = (0.5 - d01 * 0.27) * repelAlpha;
+                ctx.fillStyle = `rgb(${Math.round(108 - d01 * 24)},${Math.round(92 - d01 * 26)},${Math.round(78 - d01 * 24)})`;
+                ctx.fillText(tok, rx, ry);
+              } else {
+                // abyss
+                ctx.globalAlpha = 0.13 * repelAlpha;
+                ctx.fillStyle = "#2a2522";
                 ctx.fillText(tok, rx, ry);
               }
-            } else if (depth < -22) {
-              // sky haze
-              ctx.globalAlpha = (0.04 + 0.07 * (1 - (-depth - 22) / 48) + loftBoost * 0.45) * repelAlpha;
-              ctx.fillStyle = loftBoost > 0.1 ? `rgba(244,233,214,1)` : '#b59f83';
-              ctx.fillText(tok, rx, ry);
-            } else if (depth < 0) {
-              // spray / mist — transition into surface
-              const t01 = 1 - (-depth / 22);
-              const foam2 = foam * t01;
-              ctx.globalAlpha = (0.18 + foam2 * 0.72) * repelAlpha;
-              ctx.fillStyle = `rgb(${Math.round(183 + foam2 * 54)},${Math.round(165 + foam2 * 52)},${Math.round(141 + foam2 * 48)})`;
-              ctx.fillText(tok, rx, ry);
-            } else if (depth < 10) {
-              // CREST — maximum brightness ★
-              ctx.globalAlpha = (0.80 + foam * 0.20) * repelAlpha;
-              ctx.fillStyle = `rgb(${Math.round(212 + foam * 30)},${Math.round(192 + foam * 28)},${Math.round(165 + foam * 26)})`;
-              ctx.fillText(tok, rx, ry);
-            } else if (depth < 50) {
-              // shallow — bright cyan fading to teal
-              const d01 = (depth - 10) / 40;
-              ctx.globalAlpha = (0.80 - d01 * 0.30) * repelAlpha;
-              ctx.fillStyle = `rgb(${Math.round(163 - d01 * 35)},${Math.round(142 - d01 * 34)},${Math.round(119 - d01 * 26)})`;
-              ctx.fillText(tok, rx, ry);
-            } else if (depth < 130) {
-              // mid — teal fading to navy
-              const d01 = (depth - 50) / 80;
-              ctx.globalAlpha = (0.50 - d01 * 0.27) * repelAlpha;
-              ctx.fillStyle = `rgb(${Math.round(108 - d01 * 24)},${Math.round(92 - d01 * 26)},${Math.round(78 - d01 * 24)})`;
-              ctx.fillText(tok, rx, ry);
-            } else {
-              // abyss
-              ctx.globalAlpha = 0.13 * repelAlpha;
-              ctx.fillStyle = '#2a2522';
-              ctx.fillText(tok, rx, ry);
+
+              ctx.globalAlpha = 1;
+              x += tw;
+              idx++;
             }
-
-            ctx.globalAlpha = 1;
-            x += tw;
-            idx++;
           }
+          ctx.restore();
         }
-        ctx.restore();
-      }
 
-      // overlay pass: redraw below-surface tokens on top of logo (submerged hull effect)
-      oCtx.clearRect(0, 0, W, H);
-      if (measured) {
-        oCtx.save();
-        oCtx.textBaseline = 'middle';
-        oCtx.font = FONT;
-        for (let row = 0; row < rowTiles.length; row++) {
-          const { tokens, cumWidths, totalW, speed } = rowTiles[row];
-          const cellCY = row * CELL_H + CELL_H * 0.5;
-          if (cellCY > H + CELL_H) break;
-          const scrollX = (elapsed * speed) % totalW;
-          let lo = 0, hi = tokens.length - 1;
-          while (lo < hi) {
-            const mid = (lo + hi) >> 1;
-            cumWidths[mid + 1] < scrollX ? (lo = mid + 1) : (hi = mid);
-          }
-          const startIdx = lo > 0 ? lo - 1 : 0;
-          let x = cumWidths[startIdx] - scrollX;
-          let idx = startIdx;
-          while (x < W + 20) {
-            const tok = tokens[((idx % tokens.length) + tokens.length) % tokens.length];
-            const tw = (tokenWidths.get(tok) || 10) + TOKEN_GAP;
-            const cx = x + tw * 0.5;
-            const depth = cellCY - surfaceY(cx, t);
-            const foam = foamAt(cx, t);
-            if (depth >= 0) {
-              if (depth < 10) {
-                oCtx.globalAlpha = 0.80 + foam * 0.20;
-                oCtx.fillStyle = `rgb(${Math.round(212 + foam * 30)},${Math.round(192 + foam * 28)},${Math.round(165 + foam * 26)})`;
-              } else if (depth < 50) {
-                const d01 = (depth - 10) / 40;
-                oCtx.globalAlpha = 0.80 - d01 * 0.30;
-                oCtx.fillStyle = `rgb(${Math.round(163 - d01 * 35)},${Math.round(142 - d01 * 34)},${Math.round(119 - d01 * 26)})`;
-              } else if (depth < 130) {
-                const d01 = (depth - 50) / 80;
-                oCtx.globalAlpha = 0.50 - d01 * 0.27;
-                oCtx.fillStyle = `rgb(${Math.round(108 - d01 * 24)},${Math.round(92 - d01 * 26)},${Math.round(78 - d01 * 24)})`;
-              } else {
-                oCtx.globalAlpha = 0.13;
-                oCtx.fillStyle = '#2a2522';
+        // overlay pass: redraw below-surface tokens on top of logo (submerged hull effect)
+        oCtx.clearRect(0, 0, W, H);
+        if (measured) {
+          oCtx.save();
+          oCtx.textBaseline = "middle";
+          oCtx.font = FONT;
+          for (let row = 0; row < rowTiles.length; row++) {
+            const { tokens, cumWidths, totalW, speed } = rowTiles[row];
+            const cellCY = row * CELL_H + CELL_H * 0.5;
+            if (cellCY > H + CELL_H) break;
+            const scrollX = (elapsed * speed) % totalW;
+            let lo = 0,
+              hi = tokens.length - 1;
+            while (lo < hi) {
+              const mid = (lo + hi) >> 1;
+              cumWidths[mid + 1] < scrollX ? (lo = mid + 1) : (hi = mid);
+            }
+            const startIdx = lo > 0 ? lo - 1 : 0;
+            let x = cumWidths[startIdx] - scrollX;
+            let idx = startIdx;
+            while (x < W + 20) {
+              const tok = tokens[((idx % tokens.length) + tokens.length) % tokens.length];
+              const tw = (tokenWidths.get(tok) || 10) + TOKEN_GAP;
+              const cx = x + tw * 0.5;
+              const depth = cellCY - surfaceY(cx, t);
+              const foam = foamAt(cx, t);
+              if (depth >= 0) {
+                if (depth < 10) {
+                  oCtx.globalAlpha = 0.8 + foam * 0.2;
+                  oCtx.fillStyle = `rgb(${Math.round(212 + foam * 30)},${Math.round(192 + foam * 28)},${Math.round(165 + foam * 26)})`;
+                } else if (depth < 50) {
+                  const d01 = (depth - 10) / 40;
+                  oCtx.globalAlpha = 0.8 - d01 * 0.3;
+                  oCtx.fillStyle = `rgb(${Math.round(163 - d01 * 35)},${Math.round(142 - d01 * 34)},${Math.round(119 - d01 * 26)})`;
+                } else if (depth < 130) {
+                  const d01 = (depth - 50) / 80;
+                  oCtx.globalAlpha = 0.5 - d01 * 0.27;
+                  oCtx.fillStyle = `rgb(${Math.round(108 - d01 * 24)},${Math.round(92 - d01 * 26)},${Math.round(78 - d01 * 24)})`;
+                } else {
+                  oCtx.globalAlpha = 0.13;
+                  oCtx.fillStyle = "#2a2522";
+                }
+                oCtx.fillText(tok, x, cellCY);
+                oCtx.globalAlpha = 1;
               }
-              oCtx.fillText(tok, x, cellCY);
-              oCtx.globalAlpha = 1;
+              x += tw;
+              idx++;
             }
-            x += tw;
-            idx++;
           }
+          oCtx.restore();
         }
-        oCtx.restore();
+
+        requestAnimationFrame(frame);
       }
 
-      // logo — floats on wave surface, tilts with slope
-      const slope = surfaceDY(logoX, t);
-      const tiltDeg = Math.max(-18, Math.min(18, Math.atan(slope) * (180 / Math.PI)));
-      logoEl.style.top = (sy - logoH * 0.72 + bob) + 'px';
-      logoEl.style.transform = `translateX(-50%) rotate(${tiltDeg.toFixed(2)}deg)`;
-
-      requestAnimationFrame(frame);
-    }
-
-    // music toggle
-    const bgMusic = document.getElementById('bg-music');
-    bgMusic.volume = 0.7;
-    const musicBtn = document.getElementById('music-btn');
-    const playIcon = document.getElementById('music-icon-play');
-    const pauseIcon = document.getElementById('music-icon-pause');
-    musicBtn.addEventListener('click', () => {
-      if (bgMusic.paused) {
-        bgMusic.play();
-        playIcon.style.display = 'none';
-        pauseIcon.style.display = 'block';
-        musicBtn.setAttribute('aria-label', 'Pause background music');
-      } else {
-        bgMusic.pause();
-        playIcon.style.display = 'block';
-        pauseIcon.style.display = 'none';
-        musicBtn.setAttribute('aria-label', 'Play background music');
-      }
-    });
-
-    // copy button
-    document.getElementById('copy-btn').addEventListener('click', () => {
-      navigator.clipboard.writeText('npx shellular-cli start').then(() => {
-        const btn = document.getElementById('copy-btn');
-        btn.textContent = 'Copied!';
-        btn.classList.add('copied');
-        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+      // music toggle
+      const bgMusic = document.getElementById("bg-music");
+      bgMusic.volume = 0.7;
+      const musicBtn = document.getElementById("music-btn");
+      const playIcon = document.getElementById("music-icon-play");
+      const pauseIcon = document.getElementById("music-icon-pause");
+      musicBtn.addEventListener("click", () => {
+        if (bgMusic.paused) {
+          bgMusic.play();
+          playIcon.style.display = "none";
+          pauseIcon.style.display = "block";
+          musicBtn.setAttribute("aria-label", "Pause background music");
+        } else {
+          bgMusic.pause();
+          playIcon.style.display = "block";
+          pauseIcon.style.display = "none";
+          musicBtn.setAttribute("aria-label", "Play background music");
+        }
       });
-    });
 
-    // scroll reveal
-    const obs = new IntersectionObserver(entries => {
-      for (const e of entries) {
-        if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); }
-      }
-    }, { threshold: 0.12 });
-    document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+      // copy button
+      document.getElementById("copy-btn").addEventListener("click", () => {
+        navigator.clipboard.writeText("npx shellular-cli start").then(() => {
+          const btn = document.getElementById("copy-btn");
+          btn.textContent = "Copied!";
+          btn.classList.add("copied");
+          setTimeout(() => {
+            btn.textContent = "Copy";
+            btn.classList.remove("copied");
+          }, 2000);
+        });
+      });
 
-    // resize
-    let resizeTimer;
-    window.addEventListener('resize', () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => { resize(); if (measured) buildRowTiles(); }, 120);
-    });
+      // scroll reveal
+      const obs = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) {
+            if (e.isIntersecting) {
+              e.target.classList.add("visible");
+              obs.unobserve(e.target);
+            }
+          }
+        },
+        { threshold: 0.12 },
+      );
+      document.querySelectorAll(".reveal").forEach((el) => obs.observe(el));
 
-    // boot
-    init();
-    await document.fonts.ready;
-    await measureTokens();
-    buildRowTiles();
-    lastTime = performance.now();
-    requestAnimationFrame(frame);
-  </script>
+      // resize
+      let resizeTimer;
+      window.addEventListener("resize", () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          resize();
+          if (measured) buildRowTiles();
+        }, 120);
+      });
 
-</body>
-
+      // boot
+      init();
+      await document.fonts.ready;
+      await measureTokens();
+      buildRowTiles();
+      lastTime = performance.now();
+      requestAnimationFrame(frame);
+    </script>
+  </body>
 </html>
