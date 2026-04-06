@@ -1,6 +1,6 @@
 # shellular-server
 
-> WebSocket relay server for [Shellular](https://shellular.foxbiz.io) — bridges the CLI host agent and the Acode client plugin without requiring inbound connectivity on either side.
+> WebSocket relay server for [Shellular](https://shellular.dev) — bridges the CLI host agent and the Acode client plugin without requiring inbound connectivity on either side.
 
 ---
 
@@ -56,7 +56,7 @@ Create a `.env` file in `server/` to override defaults (see [.env.example](.env.
 
 ```env
 PORT=3000
-CORS_ORIGIN=https://shellular.foxbiz.io
+CORS_ORIGIN=https://shellular.dev
 ```
 
 ---
@@ -164,7 +164,7 @@ Terminal scrollback buffers (up to 100 KB per terminal) are held server-side and
 
 ## Links
 
-- Live relay: [https://shellular.foxbiz.io](https://shellular.foxbiz.io)
+- Live relay: [https://shellular.dev](https://shellular.dev)
 - CLI host agent: [../cli/readme.md](../cli/readme.md)
 - Acode plugin: install **Shellular** from the Acode plugin marketplace
-- Issues / feedback: [contact@foxbiz.io](mailto:contact@foxbiz.io)
+- Issues / feedback: [contact@shellular.dev](mailto:contact@shellular.dev)
