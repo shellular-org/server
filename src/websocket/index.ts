@@ -1,7 +1,7 @@
-import type { Server as HttpServer } from "node:http";
-import type { WebSocket } from "ws";
+import type http from "node:http";
 
-const { Server: WSServer } = require("ws");
+import type { WebSocket } from "ws";
+import { Server } from "ws";
 
 import {
   appendTerminalBuffer,
@@ -17,18 +17,17 @@ import {
 
 const PING_INTERVAL_MS = 30_000;
 
-export function initWebSocket(server: HttpServer) {
-  const wss = new WSServer({ server });
+export function initWebSocket(server: http.Server) {
+  const wsServer = new Server({ server });
 
   // Ping all connected sockets periodically to keep connections alive
   // through reverse proxies and load balancers
   const aliveSet = new WeakSet<WebSocket>();
 
-  wss.on("connection", (ws: WebSocket) => {
+  wsServer.on("connection", (ws: WebSocket) => {
     aliveSet.add(ws);
 
-    // biome-ignore lint/suspicious/noExplicitAny: ws library pong event not on base type
-    (ws as any).on("pong", () => {
+    ws.on("pong", () => {
       aliveSet.add(ws);
     });
 
@@ -70,21 +69,20 @@ export function initWebSocket(server: HttpServer) {
 
   // Periodic ping to detect dead connections and keep proxies happy
   setInterval(() => {
-    for (const ws of wss.clients) {
-      if (!aliveSet.has(ws as WebSocket)) {
-        (ws as WebSocket).terminate();
+    for (const ws of wsServer.clients) {
+      if (!aliveSet.has(ws)) {
+        ws.terminate();
         continue;
       }
-      aliveSet.delete(ws as WebSocket);
+      aliveSet.delete(ws);
       try {
-        // biome-ignore lint/suspicious/noExplicitAny: ws library ping not on base type
-        (ws as any).ping();
+        ws.ping();
       } catch {}
     }
   }, PING_INTERVAL_MS);
 
   console.info("WebSocket server initialized");
-  return wss;
+  return wsServer;
 }
 
 function handleAuth(ws: WebSocket, msg: { type: string; id: string; data?: Record<string, unknown> }) {

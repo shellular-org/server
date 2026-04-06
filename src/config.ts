@@ -9,11 +9,7 @@ export const APP_DIR = join(HOME_DIR, APP_DIR_NAME);
 export const DB_FILE = join(APP_DIR, DB_FILE_NAME);
 
 export const initConfig = () => {
-	if (!os.platform()) {
-		throw new Error("Unsupported platform");
-	}
-
-	if (!existsSync(APP_DIR)) {
-		mkdirSync(APP_DIR, { recursive: true });
-	}
+  if (!existsSync(APP_DIR)) {
+    mkdirSync(APP_DIR, { recursive: true });
+  }
 };
