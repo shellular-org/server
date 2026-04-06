@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import type { Server as HttpServer } from "node:http";
 import type { WebSocket } from "ws";
 
@@ -96,26 +95,32 @@ function handleAuth(
 ) {
 	if (msg.type === "session:host") {
 		const data = msg.data ?? {};
+		const machineId = String(data.machineId ?? data.token ?? "").trim();
+		if (!machineId) {
+			ws.send(
+				JSON.stringify({
+					type: "session:error",
+					id: msg.id,
+					error: "Missing machineId",
+				}),
+			);
+			return;
+		}
 		const hostInfo = {
 			hostname: String(data.hostname ?? "unknown"),
 			platform: String(data.platform ?? "unknown"),
 			dir: String(data.dir ?? "."),
+			machineId,
 		};
 
-		// Support re-hosting: if CLI provides its old token, reuse the session
-		const requestedToken = data.token ? String(data.token) : null;
-		let token: string;
-
-		if (requestedToken && getSession(requestedToken)) {
-			rehostSession(requestedToken, ws, hostInfo);
-			token = requestedToken;
+		if (getSession(machineId)) {
+			rehostSession(machineId, ws, hostInfo);
 		} else {
-			token = randomUUID().slice(0, 8);
-			createSession(token, ws, hostInfo);
+			createSession(machineId, ws, hostInfo);
 		}
 
 		ws.send(
-			JSON.stringify({ type: "session:hosted", id: msg.id, data: { token } }),
+			JSON.stringify({ type: "session:hosted", id: msg.id, data: { token: machineId } }),
 		);
 	} else if (msg.type === "session:join") {
 		const token = String(msg.data?.token ?? "");

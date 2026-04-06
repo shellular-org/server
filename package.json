@@ -24,6 +24,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.10",
     "@types/express": "^5.0.6",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2"
