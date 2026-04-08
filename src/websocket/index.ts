@@ -3,6 +3,7 @@ import type http from "node:http";
 import type { WebSocket } from "ws";
 import { Server } from "ws";
 
+import { logger } from "logger";
 import {
 	appendTerminalBuffer,
 	createSession,
@@ -83,7 +84,7 @@ export function initWebSocket(server: http.Server) {
 		}
 	}, PING_INTERVAL_MS);
 
-	console.info("WebSocket server initialized");
+	logger.info("WebSocket server initialized");
 	return wsServer;
 }
 
