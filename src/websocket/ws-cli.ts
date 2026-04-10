@@ -5,9 +5,9 @@ import { nanoid } from "nanoid";
 import { logger } from "logger";
 import {
 	appendTerminalBuffer,
+	canReuseSessionId,
 	createSession,
-	generateConnectionId,
-	getSession,
+	generateSessionId,
 	getSessionForSocket,
 	rehostSession,
 	removeSocket,
@@ -107,11 +107,7 @@ export function initCliWebSocket() {
 	return wsServer;
 }
 
-function sendSessionError(
-	ws: WebSocket,
-	error: string,
-	respTo?: string,
-) {
+function sendSessionError(ws: WebSocket, error: string, respTo?: string) {
 	const errorId = "err_" + nanoid();
 	const respMsg: SessionErrorMsg = {
 		type: MsgType.SESSION_ERROR,
@@ -123,7 +119,13 @@ function sendSessionError(
 
 function handleAuth(ws: WebSocket, msg: any) {
 	if (msg.type === MsgType.SESSION_HOST) {
-		const { machineId, hostname, platform, dir } = msg.data;
+		const {
+			machineId,
+			hostname,
+			platform,
+			dir,
+			sessionId: requestedSessionId,
+		} = msg.data;
 
 		if (!machineId) {
 			const errorId = "err_" + nanoid();
@@ -137,23 +139,20 @@ function handleAuth(ws: WebSocket, msg: any) {
 		}
 
 		const hostInfo = { hostname, platform, dir, machineId };
+		let sessionId = requestedSessionId;
 
-		// Generate a new connection ID for this CLI connection
-		const connectionId = generateConnectionId();
-
-		// Check if there's an existing session for this machineId and rehost
-		const existingSession = getSession(machineId);
-		if (existingSession) {
-			rehostSession(machineId, ws, hostInfo);
+		if (sessionId && canReuseSessionId(sessionId, machineId)) {
+			rehostSession(sessionId, ws, hostInfo);
 		} else {
-			createSession(connectionId, machineId, ws, hostInfo);
+			sessionId = generateSessionId();
+			createSession(sessionId, machineId, ws, hostInfo);
 		}
 
 		const hostedId = "hosted_" + nanoid();
 		const respMsg: SessionHostedMsg = {
 			type: MsgType.SESSION_HOSTED,
 			respTo: msg.id,
-			data: { connectionId },
+			data: { sessionId },
 		};
 		ws.send(JSON.stringify({ id: hostedId, ...respMsg }));
 	} else if (msg.type === MsgType.PING) {
@@ -174,7 +173,11 @@ function handleAuth(ws: WebSocket, msg: any) {
 	}
 }
 
-function relayToApp(sender: WebSocket, rawMessage: string, parsedMsg: { id: string; clientId: string; type: string }) {
+function relayToApp(
+	sender: WebSocket,
+	rawMessage: string,
+	parsedMsg: { id: string; clientId: string; type: string },
+) {
 	const entry = getSessionForSocket(sender);
 	if (!entry) {
 		sendSessionError(sender, "Host is not attached to a session", parsedMsg.id);
@@ -194,7 +197,11 @@ function relayToApp(sender: WebSocket, rawMessage: string, parsedMsg: { id: stri
 
 	if (!clientId) {
 		logger.error("CLI message missing clientId");
-		sendSessionError(sender, "Client routing information is missing", parsed.id);
+		sendSessionError(
+			sender,
+			"Client routing information is missing",
+			parsed.id,
+		);
 		return;
 	}
 

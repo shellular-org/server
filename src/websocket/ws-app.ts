@@ -57,18 +57,20 @@ export function initAppWebSocket() {
 			if (entry && entry.role === "client" && entry.clientId) {
 				// Notify CLI that client disconnected
 				const { session, clientId } = entry;
-				try {
-					const respMsg: SessionClientLeftMsg = {
-						type: MsgType.SESSION_CLIENT_LEFT,
-						data: { clientId },
-					};
-					session.host.send(
-						JSON.stringify({
-							id: "evt_" + nanoid(),
-							...respMsg,
-						}),
-					);
-				} catch {}
+				if (session.host) {
+					try {
+						const respMsg: SessionClientLeftMsg = {
+							type: MsgType.SESSION_CLIENT_LEFT,
+							data: { clientId },
+						};
+						session.host.send(
+							JSON.stringify({
+								id: "evt_" + nanoid(),
+								...respMsg,
+							}),
+						);
+					} catch {}
+				}
 			}
 			removeSocket(ws);
 		});
@@ -80,11 +82,7 @@ export function initAppWebSocket() {
 	return wsServer;
 }
 
-function sendSessionError(
-	ws: WebSocket,
-	error: string,
-	respTo?: string,
-) {
+function sendSessionError(ws: WebSocket, error: string, respTo?: string) {
 	const errorId = "err_" + nanoid();
 	const respMsg: SessionErrorMsg = {
 		type: MsgType.SESSION_ERROR,
@@ -110,13 +108,13 @@ function handleAuth(ws: WebSocket, msg: any) {
 		}
 
 		let session: Session | null = null;
-		let connectionId: string = "";
+		let sessionId: string = "";
 
 		if (connection.includes(":")) {
 			const [machineId, connId] = connection.split(":");
 			session = getSession(connId);
 			if (session && session.machineId === machineId) {
-				connectionId = connId;
+				sessionId = connId;
 			} else {
 				session = null;
 			}
@@ -125,7 +123,7 @@ function handleAuth(ws: WebSocket, msg: any) {
 			const machineSessions = getSessionsByMachineId(machineId);
 			if (machineSessions.length > 0) {
 				session = machineSessions[0];
-				connectionId = session.connectionId;
+				sessionId = session.sessionId;
 			}
 		}
 
@@ -140,13 +138,7 @@ function handleAuth(ws: WebSocket, msg: any) {
 			return;
 		}
 
-		const joined = joinSession(
-			connectionId,
-			clientId,
-			ws,
-			appVersion,
-			platform,
-		);
+		const joined = joinSession(sessionId, clientId, ws, appVersion, platform);
 		if (!joined) {
 			const errorId = "err_" + nanoid();
 			const respMsg: SessionErrorMsg = {
@@ -165,23 +157,25 @@ function handleAuth(ws: WebSocket, msg: any) {
 			respTo: msg.id,
 			data: {
 				...session.hostInfo,
-				connectionId,
+				sessionId,
 			},
 		};
 		ws.send(JSON.stringify({ id: joinedId, ...joinedMsg }));
 		// Notify CLI that a client joined with client details
-		try {
-			const respMsg: SessionClientJoinedMsg = {
-				type: MsgType.SESSION_CLIENT_JOINED,
-				data: { clientId, appVersion, platform },
-			};
-			session.host.send(
-				JSON.stringify({
-					id: "evt_" + nanoid(),
-					...respMsg,
-				}),
-			);
-		} catch {}
+		if (session.host) {
+			try {
+				const respMsg: SessionClientJoinedMsg = {
+					type: MsgType.SESSION_CLIENT_JOINED,
+					data: { clientId, appVersion, platform },
+				};
+				session.host.send(
+					JSON.stringify({
+						id: "evt_" + nanoid(),
+						...respMsg,
+					}),
+				);
+			} catch {}
+		}
 	} else {
 		const errorId = "err_" + nanoid();
 		const respMsg: SessionErrorMsg = {
@@ -220,16 +214,17 @@ function relayToCli(sender: WebSocket, rawMessage: string, msgId?: string) {
 		return;
 	}
 
+	if (!session.host) {
+		sendSessionError(sender, "Host is not currently connected", parsed.id);
+		return;
+	}
+
 	// App → CLI, include clientId so CLI knows who sent it
 	try {
 		const msgWithClientId = JSON.stringify({ ...parsed, clientId });
 		session.host.send(msgWithClientId);
 	} catch (err) {
 		logger.error("Failed to relay app message to CLI", err);
-		sendSessionError(
-			sender,
-			"Failed to relay message to host",
-			parsed.id,
-		);
+		sendSessionError(sender, "Failed to relay message to host", parsed.id);
 	}
 }

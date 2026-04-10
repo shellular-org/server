@@ -22,9 +22,9 @@ export interface SocketInfo {
 }
 
 export interface Session {
-	connectionId: string;
+	sessionId: string;
 	machineId: string;
-	host: WebSocket;
+	host: WebSocket | null;
 	hostInfo: {
 		hostname: string;
 		platform: string;
@@ -33,6 +33,7 @@ export interface Session {
 	};
 	clients: Map<string, ClientInfo>;
 	terminalBuffers: Map<string, Map<string, TerminalBuffer>>;
+	hostActive: boolean;
 }
 
 const TERMINAL_BUFFER_MAX = 100 * 1024; // 100KB
@@ -41,38 +42,39 @@ const BUFFER_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const sessions = new Map<string, Session>();
 const socketToSession = new WeakMap<WebSocket, SocketInfo>();
 
-export function generateConnectionId(): string {
+export function generateSessionId(): string {
 	return nanoid(8);
 }
 
 export function createSession(
-	connectionId: string,
+	sessionId: string,
 	machineId: string,
 	host: WebSocket,
 	hostInfo: Session["hostInfo"],
 ): Session {
 	const session: Session = {
-		connectionId,
+		sessionId,
 		machineId,
 		host,
 		hostInfo,
 		clients: new Map(),
 		terminalBuffers: new Map(),
+		hostActive: true,
 	};
-	sessions.set(connectionId, session);
+	sessions.set(sessionId, session);
 	socketToSession.set(host, { session, role: "host" });
 	return session;
 }
 
 export function joinSession(
-	connectionId: string,
+	sessionId: string,
 	clientId: string,
 	client: WebSocket,
 	appVersion: string,
 	platform: string,
 ): Session | null {
-	const session = sessions.get(connectionId);
-	if (!session) return null;
+	const session = sessions.get(sessionId);
+	if (!session || !session.host || !session.hostActive) return null;
 	const clientInfo: ClientInfo = {
 		ws: client,
 		appVersion,
@@ -84,8 +86,8 @@ export function joinSession(
 	return session;
 }
 
-export function removeClient(connectionId: string, clientId: string): void {
-	const session = sessions.get(connectionId);
+export function removeClient(sessionId: string, clientId: string): void {
+	const session = sessions.get(sessionId);
 	if (!session) return;
 	const clientInfo = session.clients.get(clientId);
 	if (!clientInfo) return;
@@ -98,19 +100,31 @@ export function removeClient(connectionId: string, clientId: string): void {
 }
 
 export function rehostSession(
-	connectionId: string,
+	sessionId: string,
 	newHost: WebSocket,
 	hostInfo: Session["hostInfo"],
 ): Session | null {
-	const session = sessions.get(connectionId);
-	if (!session) return null;
+	const session = sessions.get(sessionId);
+	if (!session || session.hostActive) return null;
 	// Remove old host mapping (old socket may already be dead)
-	socketToSession.delete(session.host);
+	if (session.host) {
+		socketToSession.delete(session.host);
+	}
 	// Update host
 	session.host = newHost;
 	session.hostInfo = hostInfo;
+	session.hostActive = true;
 	socketToSession.set(newHost, { session, role: "host" });
 	return session;
+}
+
+export function canReuseSessionId(
+	sessionId: string,
+	machineId: string,
+): boolean {
+	const session = sessions.get(sessionId);
+	if (!session) return false;
+	return session.machineId === machineId && !session.hostActive;
 }
 
 export function getSessionForSocket(ws: WebSocket) {
@@ -139,14 +153,9 @@ export function removeSocket(ws: WebSocket): void {
 			} catch {}
 			socketToSession.delete(clientInfo.ws);
 		}
-		// Notify HTTP polling clients
-		const disconnectMsg = JSON.stringify({
-			type: "session:error",
-			id: "0",
-			error: "Host disconnected",
-		});
-
-		sessions.delete(session.connectionId);
+		session.clients.clear();
+		session.host = null;
+		session.hostActive = false;
 	} else if (role === "client" && clientId) {
 		// Client disconnected
 		const clientInfo = session.clients.get(clientId);
@@ -157,8 +166,8 @@ export function removeSocket(ws: WebSocket): void {
 	}
 }
 
-export function getSession(connectionId: string): Session | null {
-	return sessions.get(connectionId) ?? null;
+export function getSession(sessionId: string): Session | null {
+	return sessions.get(sessionId) ?? null;
 }
 
 export function getSessionsByMachineId(machineId: string): Session[] {

@@ -91,7 +91,7 @@ export interface SessionHostedMsg
 	extends BaseMsg<typeof MsgType.SESSION_HOSTED>,
 		RespMsg {
 	data: {
-		connectionId: string;
+		sessionId: string;
 	};
 }
 
@@ -103,7 +103,7 @@ export interface SessionJoinedMsg
 		platform: string;
 		dir: string;
 		machineId?: string;
-		connectionId: string;
+		sessionId: string;
 	};
 }
 
@@ -142,6 +142,7 @@ export const SessionHostMsgSchema = z.object({
 		hostname: z.string(),
 		platform: z.string(),
 		dir: z.string(),
+		sessionId: z.string().optional(),
 	}),
 });
 
