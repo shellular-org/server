@@ -1,17 +1,28 @@
 import type { WebSocket } from "ws";
-
-export interface HttpClient {
-	clientId: string;
-	queue: string[];
-	lastSeen: number;
-}
+import { nanoid } from "nanoid";
 
 export interface TerminalBuffer {
 	data: string;
 	updatedAt: number;
 }
 
+export interface ClientInfo {
+	ws: WebSocket;
+	appVersion: string;
+	platform: string;
+	clientId: string;
+}
+
+export type SocketRole = "host" | "client";
+
+export interface SocketInfo {
+	session: Session;
+	role: SocketRole;
+	clientId?: string;
+}
+
 export interface Session {
+	connectionId: string;
 	machineId: string;
 	host: WebSocket;
 	hostInfo: {
@@ -20,96 +31,78 @@ export interface Session {
 		dir: string;
 		machineId?: string;
 	};
-	clients: Set<WebSocket>;
-	httpClients: Map<string, HttpClient>;
-	terminalBuffers: Map<string, TerminalBuffer>;
+	clients: Map<string, ClientInfo>;
+	terminalBuffers: Map<string, Map<string, TerminalBuffer>>;
 }
 
 const TERMINAL_BUFFER_MAX = 100 * 1024; // 100KB
 const BUFFER_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 const sessions = new Map<string, Session>();
-const socketToSession = new WeakMap<
-	WebSocket,
-	{ session: Session; role: "host" | "client" }
->();
-const httpClientToSession = new Map<string, Session>();
+const socketToSession = new WeakMap<WebSocket, SocketInfo>();
+
+export function generateConnectionId(): string {
+	return nanoid(8);
+}
 
 export function createSession(
+	connectionId: string,
 	machineId: string,
 	host: WebSocket,
 	hostInfo: Session["hostInfo"],
 ): Session {
 	const session: Session = {
+		connectionId,
 		machineId,
 		host,
 		hostInfo,
-		clients: new Set(),
-		httpClients: new Map(),
+		clients: new Map(),
 		terminalBuffers: new Map(),
 	};
-	sessions.set(machineId, session);
+	sessions.set(connectionId, session);
 	socketToSession.set(host, { session, role: "host" });
 	return session;
 }
 
 export function joinSession(
-	machineId: string,
+	connectionId: string,
+	clientId: string,
 	client: WebSocket,
+	appVersion: string,
+	platform: string,
 ): Session | null {
-	const session = sessions.get(machineId);
+	const session = sessions.get(connectionId);
 	if (!session) return null;
-	session.clients.add(client);
-	socketToSession.set(client, { session, role: "client" });
-	return session;
-}
-
-export function joinSessionHttp(
-	machineId: string,
-	clientId: string,
-): Session | null {
-	const session = sessions.get(machineId);
-	if (!session) return null;
-	const httpClient: HttpClient = {
+	const clientInfo: ClientInfo = {
+		ws: client,
+		appVersion,
+		platform,
 		clientId,
-		queue: [],
-		lastSeen: Date.now(),
 	};
-	session.httpClients.set(clientId, httpClient);
-	httpClientToSession.set(clientId, session);
+	session.clients.set(clientId, clientInfo);
+	socketToSession.set(client, { session, role: "client", clientId });
 	return session;
 }
 
-export function getHttpClient(
-	clientId: string,
-): { session: Session; httpClient: HttpClient } | null {
-	const session = httpClientToSession.get(clientId);
-	if (!session) return null;
-	const httpClient = session.httpClients.get(clientId);
-	if (!httpClient) return null;
-	httpClient.lastSeen = Date.now();
-	return { session, httpClient };
-}
-
-export function pushToHttpClients(session: Session, rawMessage: string) {
-	for (const [, httpClient] of session.httpClients) {
-		httpClient.queue.push(rawMessage);
-	}
-}
-
-export function removeHttpClient(clientId: string): void {
-	const session = httpClientToSession.get(clientId);
+export function removeClient(connectionId: string, clientId: string): void {
+	const session = sessions.get(connectionId);
 	if (!session) return;
-	session.httpClients.delete(clientId);
-	httpClientToSession.delete(clientId);
+	const clientInfo = session.clients.get(clientId);
+	if (!clientInfo) return;
+
+	session.clients.delete(clientId);
+	socketToSession.delete(clientInfo.ws);
+
+	// Clean up terminal buffers for this client
+	session.terminalBuffers.delete(clientId);
 }
 
 export function rehostSession(
-	machineId: string,
+	connectionId: string,
 	newHost: WebSocket,
 	hostInfo: Session["hostInfo"],
 ): Session | null {
-	const session = sessions.get(machineId);
+	const session = sessions.get(connectionId);
 	if (!session) return null;
 	// Remove old host mapping (old socket may already be dead)
 	socketToSession.delete(session.host);
@@ -128,23 +121,23 @@ export function removeSocket(ws: WebSocket): void {
 	const entry = socketToSession.get(ws);
 	if (!entry) return;
 
-	const { session, role } = entry;
+	const { session, role, clientId } = entry;
 	socketToSession.delete(ws);
 
 	if (role === "host") {
 		// Notify all WS clients that host disconnected
-		for (const client of session.clients) {
+		for (const [clientId, clientInfo] of session.clients) {
 			try {
-				client.send(
+				clientInfo.ws.send(
 					JSON.stringify({
 						type: "session:error",
 						id: "0",
 						error: "Host disconnected",
 					}),
 				);
-				client.close();
+				clientInfo.ws.close();
 			} catch {}
-			socketToSession.delete(client);
+			socketToSession.delete(clientInfo.ws);
 		}
 		// Notify HTTP polling clients
 		const disconnectMsg = JSON.stringify({
@@ -152,56 +145,84 @@ export function removeSocket(ws: WebSocket): void {
 			id: "0",
 			error: "Host disconnected",
 		});
-		pushToHttpClients(session, disconnectMsg);
-		for (const [cid] of session.httpClients) {
-			removeHttpClient(cid);
+
+		sessions.delete(session.connectionId);
+	} else if (role === "client" && clientId) {
+		// Client disconnected
+		const clientInfo = session.clients.get(clientId);
+		if (clientInfo && clientInfo.ws === ws) {
+			session.clients.delete(clientId);
+			session.terminalBuffers.delete(clientId);
 		}
-		sessions.delete(session.machineId);
-	} else {
-		session.clients.delete(ws);
 	}
 }
 
-export function getSession(machineId: string): Session | null {
-	return sessions.get(machineId) ?? null;
+export function getSession(connectionId: string): Session | null {
+	return sessions.get(connectionId) ?? null;
+}
+
+export function getSessionsByMachineId(machineId: string): Session[] {
+	const result: Session[] = [];
+	for (const session of sessions.values()) {
+		if (session.machineId === machineId) {
+			result.push(session);
+		}
+	}
+	return result;
 }
 
 export function appendTerminalBuffer(
 	session: Session,
+	clientId: string,
 	terminalId: string,
 	data: string,
 ): void {
-	const existing = session.terminalBuffers.get(terminalId);
+	if (!session.terminalBuffers.has(clientId)) {
+		session.terminalBuffers.set(clientId, new Map());
+	}
+	const clientBuffers = session.terminalBuffers.get(clientId)!;
+	const existing = clientBuffers.get(terminalId);
 	let buf = existing ? existing.data + data : data;
 	if (buf.length > TERMINAL_BUFFER_MAX) {
 		buf = buf.slice(buf.length - TERMINAL_BUFFER_MAX);
 	}
-	session.terminalBuffers.set(terminalId, { data: buf, updatedAt: Date.now() });
+	clientBuffers.set(terminalId, { data: buf, updatedAt: Date.now() });
 }
 
 export function getAndClearTerminalBuffer(
 	session: Session,
+	clientId: string,
 	terminalId: string,
 ): string {
-	const entry = session.terminalBuffers.get(terminalId);
+	const clientBuffers = session.terminalBuffers.get(clientId);
+	if (!clientBuffers) return "";
+	const entry = clientBuffers.get(terminalId);
 	if (!entry) return "";
-	session.terminalBuffers.delete(terminalId);
+	clientBuffers.delete(terminalId);
 	return entry.data;
 }
 
 export function removeTerminalBuffer(
 	session: Session,
+	clientId: string,
 	terminalId: string,
 ): void {
-	session.terminalBuffers.delete(terminalId);
+	const clientBuffers = session.terminalBuffers.get(clientId);
+	if (!clientBuffers) return;
+	clientBuffers.delete(terminalId);
 }
 
 export function cleanupStaleBuffers(): void {
 	const now = Date.now();
 	for (const [, session] of sessions) {
-		for (const [tid, buf] of session.terminalBuffers) {
-			if (now - buf.updatedAt > BUFFER_TTL_MS) {
-				session.terminalBuffers.delete(tid);
+		for (const [clientId, clientBuffers] of session.terminalBuffers) {
+			for (const [terminalId, buf] of clientBuffers) {
+				if (now - buf.updatedAt > BUFFER_TTL_MS) {
+					clientBuffers.delete(terminalId);
+				}
+			}
+			if (clientBuffers.size === 0) {
+				session.terminalBuffers.delete(clientId);
 			}
 		}
 	}

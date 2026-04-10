@@ -6,7 +6,7 @@ import express from "express";
 import { initConfig } from "config";
 import { env } from "env";
 import cors from "middleware/cors";
-import { initWebSocket } from "websocket/index";
+import { initWebSocketRelay } from "websocket/index";
 import { cleanupStaleBuffers } from "websocket/sessions";
 import { logger } from "logger";
 
@@ -89,7 +89,7 @@ setInterval(
 );
 
 const server = createServer(app);
-initWebSocket(server);
+initWebSocketRelay(server);
 
 server.listen(env.PORT, env.HOST, () => {
 	logger.info(`Server is running on port ${env.PORT}`);
