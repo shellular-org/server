@@ -7,8 +7,6 @@ export const MsgType = {
 	SESSION_HOST: "session:host",
 	/** Server response confirming CLI is registered as a host */
 	SESSION_HOSTED: "session:hosted",
-	/** App sends this to join a host session */
-	SESSION_JOIN: "session:join",
 	/** Server response confirming app has joined a session */
 	SESSION_JOINED: "session:joined",
 	/** Error response during session establishment */
@@ -17,6 +15,10 @@ export const MsgType = {
 	SESSION_CLIENT_JOINED: "session:client-joined",
 	/** Server notifies CLI when a client (app) leaves the session */
 	SESSION_CLIENT_LEFT: "session:client-left",
+	/** Server notifies CLI of a pending client connection awaiting approval */
+	SESSION_CLIENT_JOIN: "session:client-join",
+	/** CLI sends this to report whether a pending client was approved */
+	SESSION_CLIENT_JOIN_RESULT: "session:client-join:result",
 	/** Heartbeat ping from CLI to server */
 	PING: "ping",
 	/** Heartbeat pong response from server to CLI */
@@ -38,7 +40,7 @@ export interface SessionHostedMsg
 
 export interface SessionJoinedMsg
 	extends BaseMsg<typeof MsgType.SESSION_JOINED> {
-	respTo: string;
+	respTo?: string;
 	data: {
 		hostname: string;
 		platform: string;
@@ -73,6 +75,15 @@ export interface SessionClientLeftMsg
 	};
 }
 
+export interface SessionClientJoinMsg
+	extends BaseMsg<typeof MsgType.SESSION_CLIENT_JOIN> {
+	data: {
+		clientId: string;
+		appVersion: string;
+		platform: string;
+	};
+}
+
 export const SessionHostMsgSchema = z.object({
 	id: z.string(),
 	type: z.literal(MsgType.SESSION_HOST),
@@ -84,18 +95,6 @@ export const SessionHostMsgSchema = z.object({
 		dir: z.string(),
 	}),
 });
-
-export const SessionJoinMsgSchema = z.object({
-	id: z.string(),
-	type: z.literal(MsgType.SESSION_JOIN),
-	data: z.object({
-		connection: z.string(),
-		clientId: z.string(),
-		appVersion: z.string(),
-		platform: z.string(),
-	}),
-});
-
 export const BaseMsgSchema = z
 	.object({
 		id: z.string(),
@@ -106,6 +105,12 @@ export const BaseMsgSchema = z
 export const PingMsgSchema = z.object({
 	id: z.string(),
 	type: z.literal(MsgType.PING),
+});
+
+export const SessionClientJoinResultMsgSchema = z.object({
+	id: z.string(),
+	type: z.literal(MsgType.SESSION_CLIENT_JOIN_RESULT),
+	data: z.object({ clientId: z.string(), approved: z.boolean() }),
 });
 
 export const ClientToHostMsgSchema = BaseMsgSchema.extend({});
@@ -119,10 +124,12 @@ export const HostToClientMsgSchema = BaseMsgSchema.extend({
 
 export type BaseMsgParsed = z.infer<typeof BaseMsgSchema>;
 export type SessionHostMsg = z.infer<typeof SessionHostMsgSchema>;
-export type SessionJoinMsg = z.infer<typeof SessionJoinMsgSchema>;
 export type PingMsg = z.infer<typeof PingMsgSchema>;
 export type ClientToHostMsg = z.infer<typeof ClientToHostMsgSchema>;
 export type HostToClientMsg = z.infer<typeof HostToClientMsgSchema>;
+export type SessionClientJoinResultMsg = z.infer<
+	typeof SessionClientJoinResultMsgSchema
+>;
 
 export function parseBaseMessage(raw: string): BaseMsgParsed | null {
 	try {
