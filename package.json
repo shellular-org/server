@@ -1,0 +1,36 @@
+{
+	"name": "server",
+	"version": "1.0.0",
+	"description": "",
+	"main": "src/main.js",
+	"scripts": {
+		"dev": "NODE_ENV=dev tsx --watch src/main.ts",
+		"build": "tsc",
+		"format": "pnpx @biomejs/biome check --write src",
+		"start": "NODE_ENV=prod tsx src/main.ts"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "MIT",
+	"type": "commonjs",
+	"dependencies": {
+		"dotenv": "^17.4.1",
+		"express": "^5.2.1",
+		"googleapis": "^171.4.0",
+		"nanoid": "^5.1.7",
+		"ws": "^8.20.0",
+		"zod": "^4.3.6"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.11",
+		"@types/better-sqlite3": "^7.6.13",
+		"@types/express": "^5.0.6",
+		"@types/ws": "^8.18.1",
+		"better-sqlite3": "^12.9.0",
+		"tsx": "^4.21.0",
+		"typescript": "^6.0.2"
+	},
+	"optionalDependencies": {
+		"bufferutil": "^4.1.0"
+	}
+}
