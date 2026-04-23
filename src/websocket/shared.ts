@@ -56,3 +56,11 @@ export function sendSessionErrorToClient(
 ) {
 	sendSessionErrorMsg(ws, error, respTo, debugInfo);
 }
+
+export const CloseCodeAndReason = {
+	HOST_UNAVAILABLE: { code: 4001, reason: "host_unavailable" },
+	INVALID_QUERY: { code: 4002, reason: "invalid_query" },
+	APPROVAL_DENIED: { code: 4003, reason: "approval_denied" },
+	SESSION_JOIN_FAILED: { code: 4004, reason: "session_join_failed" },
+	HOST_DISCONNECTED: { code: 4005, reason: "host_disconnected" },
+} as const;

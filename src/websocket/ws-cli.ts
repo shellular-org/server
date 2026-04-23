@@ -4,13 +4,13 @@ import { z } from "zod";
 
 import { verifyHost } from "@/db";
 import { logger } from "@/logger";
-import { sleep } from "@/utils";
 import {
 	type HostToClientMsg,
 	HostToClientMsgSchema,
 	MsgType,
 	type PongMsg,
 	parseBaseMessage,
+	SessionClientJoinResultMsgSchema,
 	type SessionHostedMsg,
 	type SessionHostMsg,
 	SessionHostMsgSchema,
@@ -22,7 +22,8 @@ import {
 	removeSocket,
 	type Session,
 } from "./sessions";
-import { sendSessionErrorToClient, sendSessionErrorToHost } from "./shared";
+import { sendSessionErrorToHost } from "./shared";
+import { resolvePendingClient } from "./ws-app";
 
 export function initCliWebSocket() {
 	const wsServer = new WebSocketServer({ noServer: true });
@@ -82,6 +83,26 @@ export function initCliWebSocket() {
 				return;
 			}
 
+			// Handle client approval result sent by the CLI host
+			if (parsedBaseMsg.type === MsgType.SESSION_CLIENT_JOIN_RESULT) {
+				const parsed =
+					SessionClientJoinResultMsgSchema.safeParse(parsedBaseMsg);
+
+				if (!parsed.success) {
+					sendSessionErrorToHost(ws, "Invalid client approval message", {
+						rawStr,
+						zodError: z.treeifyError(parsed.error),
+					});
+				} else {
+					resolvePendingClient(
+						parsed.data.data.clientId,
+						parsed.data.data.approved,
+					);
+				}
+
+				return;
+			}
+
 			// host (CLI) -> client (app) routing
 			const msg = HostToClientMsgSchema.safeParse(parsedBaseMsg);
 			if (!msg.success) {
@@ -100,24 +121,12 @@ export function initCliWebSocket() {
 		});
 
 		ws.on("close", async () => {
-			const entry = getSessionForSocket(ws);
-			if (entry && entry.role === "host") {
-				// Notify all clients that CLI disconnected
-				const { session } = entry;
-				for (const [, clientInfo] of session.clients) {
-					sendSessionErrorToClient(clientInfo.ws, "Host disconnected");
-					await sleep(100); // Give client a moment to receive message before closing
-					clientInfo.ws.close();
-				}
-			}
-
 			removeSocket(ws);
 		});
 
 		ws.on("error", () => removeSocket(ws));
 	});
 
-	logger.info("CLI WebSocketServer initialized");
 	return wsServer;
 }
 
@@ -159,10 +168,10 @@ function handleAuth(ws: WebSocket, msg: SessionHostMsg): Session {
 	return session;
 }
 
-function relayToApp(sender: WebSocket, msg: HostToClientMsg) {
-	const entry = getSessionForSocket(sender);
+function relayToApp(hostWs: WebSocket, msg: HostToClientMsg) {
+	const entry = getSessionForSocket(hostWs);
 	if (!entry) {
-		sendSessionErrorToHost(sender, "Host is not attached to a session");
+		sendSessionErrorToHost(hostWs, "Host is not attached to a session");
 		return;
 	}
 
@@ -171,7 +180,7 @@ function relayToApp(sender: WebSocket, msg: HostToClientMsg) {
 
 	const clientInfo = session.clients.get(clientId);
 	if (!clientInfo) {
-		sendSessionErrorToHost(sender, `Client ${clientId} is not connected`);
+		sendSessionErrorToHost(hostWs, `Client ${clientId} is not connected`);
 		return;
 	}
 
@@ -180,7 +189,7 @@ function relayToApp(sender: WebSocket, msg: HostToClientMsg) {
 	} catch (err) {
 		logger.error("Failed to relay CLI message to app", err);
 		sendSessionErrorToHost(
-			sender,
+			hostWs,
 			`Failed to relay message to client ${clientId}`,
 		);
 	}

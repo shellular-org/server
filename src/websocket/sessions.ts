@@ -1,7 +1,9 @@
 import { nanoid } from "nanoid";
 import type { WebSocket } from "ws";
+
 import { sleep } from "@/utils";
 import { MsgType } from "./protocol";
+import { CloseCodeAndReason } from "./shared";
 
 export interface ClientInfo {
 	ws: WebSocket;
@@ -51,23 +53,29 @@ export function createSession(
 
 export function joinSession(
 	sessionId: string,
-	clientId: string,
-	client: WebSocket,
-	appVersion: string,
-	platform: string,
+	client: {
+		id: string;
+		ws: WebSocket;
+		appVersion: string;
+		platform: string;
+	},
 ): Session | null {
 	const session = sessions.get(sessionId);
 	if (!session?.host) {
 		return null;
 	}
 	const clientInfo: ClientInfo = {
-		ws: client,
-		appVersion,
-		platform,
-		clientId,
+		ws: client.ws,
+		appVersion: client.appVersion,
+		platform: client.platform,
+		clientId: client.id,
 	};
-	session.clients.set(clientId, clientInfo);
-	socketToSession.set(client, { session, role: "client", clientId });
+	session.clients.set(client.id, clientInfo);
+	socketToSession.set(client.ws, {
+		session,
+		role: "client",
+		clientId: client.id,
+	});
 	return session;
 }
 
@@ -112,9 +120,10 @@ export async function removeSocket(ws: WebSocket) {
 					error: "Host disconnected",
 				}),
 			);
-			await sleep(100); // Give client a moment to receive message before closing
-			clientInfo.ws.close();
-			socketToSession.delete(clientInfo.ws);
+			await sleep(250); // Give client a moment to receive message before closing
+			const { code, reason } = CloseCodeAndReason.HOST_DISCONNECTED;
+			clientInfo.ws.close(code, reason);
+			socketToSession.delete(ws);
 		}
 		entry.session.clients.clear();
 		sessions.delete(entry.session.id);
