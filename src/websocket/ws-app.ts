@@ -15,9 +15,9 @@ import {
 	type SessionJoinedMsg,
 } from "./protocol";
 import {
+	type ClientInfo,
 	getSessionForSocket,
 	removeSocket,
-	type ClientInfo,
 	type Session,
 } from "./sessions";
 import { sendSessionErrorToClient } from "./shared";

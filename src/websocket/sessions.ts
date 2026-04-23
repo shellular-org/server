@@ -1,7 +1,9 @@
 import { nanoid } from "nanoid";
 import type { WebSocket } from "ws";
+
 import { sleep } from "@/utils";
 import { MsgType } from "./protocol";
+import { CloseCodeAndReason } from "./shared";
 
 export interface ClientInfo {
 	ws: WebSocket;
@@ -119,8 +121,9 @@ export async function removeSocket(ws: WebSocket) {
 				}),
 			);
 			await sleep(250); // Give client a moment to receive message before closing
-			clientInfo.ws.close();
-			socketToSession.delete(clientInfo.ws);
+			const { code, reason } = CloseCodeAndReason.HOST_DISCONNECTED;
+			clientInfo.ws.close(code, reason);
+			socketToSession.delete(ws);
 		}
 		entry.session.clients.clear();
 		sessions.delete(entry.session.id);

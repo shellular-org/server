@@ -4,7 +4,6 @@ import { z } from "zod";
 
 import { verifyHost } from "@/db";
 import { logger } from "@/logger";
-import { sleep } from "@/utils";
 import {
 	type HostToClientMsg,
 	HostToClientMsgSchema,
@@ -23,7 +22,7 @@ import {
 	removeSocket,
 	type Session,
 } from "./sessions";
-import { sendSessionErrorToClient, sendSessionErrorToHost } from "./shared";
+import { sendSessionErrorToHost } from "./shared";
 import { resolvePendingClient } from "./ws-app";
 
 export function initCliWebSocket() {
@@ -122,17 +121,6 @@ export function initCliWebSocket() {
 		});
 
 		ws.on("close", async () => {
-			const entry = getSessionForSocket(ws);
-			if (entry && entry.role === "host") {
-				// Notify all clients that CLI disconnected
-				const { session } = entry;
-				for (const [, clientInfo] of session.clients) {
-					sendSessionErrorToClient(clientInfo.ws, "Host disconnected");
-					await sleep(250); // Give client a moment to receive message before closing
-					clientInfo.ws.close();
-				}
-			}
-
 			removeSocket(ws);
 		});
 

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { getHost } from "@/db";
 import { logger } from "@/logger";
 import { getActiveSessionForHost, joinSession, removeSocket } from "./sessions";
+import { CloseCodeAndReason } from "./shared";
 import { initAppWebSocket, requestClientApprovalFromHost } from "./ws-app";
 import { initCliWebSocket } from "./ws-cli";
 
@@ -36,13 +37,6 @@ export function initWebSocketRelay(server: http.Server) {
 
 	return { cliWsServer, appWsServer };
 }
-
-const CloseCodeAndReason = {
-	INVALID_QUERY: { code: 4002, reason: "invalid_query" },
-	HOST_UNAVAILABLE: { code: 4001, reason: "host_unavailable" },
-	APPROVAL_DENIED: { code: 4003, reason: "approval_denied" },
-	SESSION_JOIN_FAILED: { code: 4004, reason: "session_join_failed" },
-} as const;
 
 function closeWithError(ws: WebSocket, code: number, reason: string) {
 	// reason should stay short (<123 bytes)
