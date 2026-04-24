@@ -22,7 +22,7 @@ import {
 } from "./sessions";
 import { sendSessionErrorToClient } from "./shared";
 
-const CLIENT_APPROVAL_TIMEOUT_MS = 30_000;
+const CLIENT_APPROVAL_TIMEOUT_MS = 60_000;
 
 type ApprovalDecision = {
 	approved: boolean;
