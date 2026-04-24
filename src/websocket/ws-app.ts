@@ -42,7 +42,13 @@ const preUpgradeApprovals = new Map<string, PreUpgradeApprovalEntry>();
  * the given session.
  */
 export function isClientOccupied(session: Session, clientId: string): boolean {
-	return session.clients.has(clientId) || preUpgradeApprovals.has(clientId);
+	const existingClient = session.clients.get(clientId);
+	if (existingClient) {
+		// User might be switching from one device to another, so we allow a new connection to take over an existing one.
+		existingClient.ws.close();
+		session.clients.delete(clientId);
+	}
+	return preUpgradeApprovals.has(clientId);
 }
 
 export function requestClientApprovalFromHost(

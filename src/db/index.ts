@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 import Database from "better-sqlite3";
 import { nanoid } from "nanoid";
-
+import { env } from "@/env";
 import { logger } from "@/logger";
 import getPm2Info from "@/utils";
 
@@ -52,6 +52,18 @@ export function registerHost(machineId: string, platform: string): string {
 }
 
 export function getHost(id: string) {
+	if (env.NODE_ENV === "dev") {
+		logger.warn(
+			"Development mode: Skipping host lookup. Returning dummy host for any id.",
+		);
+		return {
+			id,
+			machineId: "dev-machine-id",
+			platform: "dev-platform",
+			createdAt: Date.now(),
+		};
+	}
+
 	const stmt = db.prepare("SELECT * FROM hosts WHERE id = ?");
 	return stmt.get(id) as
 		| {
@@ -64,6 +76,13 @@ export function getHost(id: string) {
 }
 
 export function verifyHost(id: string, machineId: string, platform: string) {
+	if (env.NODE_ENV === "dev") {
+		logger.warn(
+			"Development mode: Skipping host verification. Any host can connect with any machineId and platform.",
+		);
+		return { id, machineId, platform, createdAt: Date.now() };
+	}
+
 	const stmt = db.prepare(
 		"SELECT * FROM hosts WHERE id = ? AND machineId = ? AND platform = ?",
 	);
