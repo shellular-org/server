@@ -1,19 +1,19 @@
+import {
+	BaseMsgSchema,
+	MsgType,
+	type PongMsg,
+	parseMessage,
+	type SessionClientJoinedMsg,
+	type SessionClientJoinMsg,
+	type SessionClientLeftMsg,
+	type SessionJoinedMsg,
+} from "@shellular/protocol";
 import { nanoid } from "nanoid";
 import { type WebSocket, WebSocketServer } from "ws";
 import { z } from "zod";
 
 import { logger } from "@/logger";
-import {
-	type ClientToHostMsg,
-	ClientToHostMsgSchema,
-	MsgType,
-	type PongMsg,
-	parseBaseMessage,
-	type SessionClientJoinedMsg,
-	type SessionClientJoinMsg,
-	type SessionClientLeftMsg,
-	type SessionJoinedMsg,
-} from "./protocol";
+import { type ClientToHostMsg, ClientToHostMsgSchema } from "./protocol";
 import {
 	type ClientInfo,
 	getSessionForSocket,
@@ -42,7 +42,13 @@ const preUpgradeApprovals = new Map<string, PreUpgradeApprovalEntry>();
  * the given session.
  */
 export function isClientOccupied(session: Session, clientId: string): boolean {
-	return session.clients.has(clientId) || preUpgradeApprovals.has(clientId);
+	const existingClient = session.clients.get(clientId);
+	if (existingClient) {
+		// User might be switching from one device to another, so we allow a new connection to take over an existing one.
+		existingClient.ws.close();
+		session.clients.delete(clientId);
+	}
+	return preUpgradeApprovals.has(clientId);
 }
 
 export function requestClientApprovalFromHost(
@@ -152,11 +158,13 @@ export function initAppWebSocket() {
 
 		ws.on("message", (raw) => {
 			const rawStr = raw.toString();
-			const parsedBaseMsg = parseBaseMessage(rawStr);
-			if (!parsedBaseMsg) {
+			const parsedBase = parseMessage(rawStr, BaseMsgSchema);
+			if (!parsedBase.data) {
 				sendSessionErrorToClient(ws, "Invalid message format");
 				return;
 			}
+
+			const parsedBaseMsg = parsedBase.data;
 
 			if (parsedBaseMsg.type === MsgType.PING) {
 				const pongMsg: PongMsg = {

@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@shellular/protocol':
+        specifier: ^0.0.3
+        version: 0.0.3
       dotenv:
         specifier: ^17.4.1
         version: 17.4.1
@@ -267,6 +270,9 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@shellular/protocol@0.0.3':
+    resolution: {integrity: sha512-Zy829jYlDc4Ox6vK9T4DUkig7w0yymEe6RaKVf4gQV9XuQEoc3amFV8XEXUKfY9KJ27SMzKGoEdVAKq8fE/cTA==}
 
   '@types/better-sqlite3@7.6.13':
     resolution: {integrity: sha512-NMv9ASNARoKksWtsq/SHakpYAYnhBrQgGD8zkLYk/jaK8jUGn08CfEdTRgYhMypUQAfzSP8W6gNLe0q19/t4VA==}
@@ -935,6 +941,10 @@ snapshots:
 
   '@esbuild/win32-x64@0.27.7':
     optional: true
+
+  '@shellular/protocol@0.0.3':
+    dependencies:
+      zod: 4.3.6
 
   '@types/better-sqlite3@7.6.13':
     dependencies:
