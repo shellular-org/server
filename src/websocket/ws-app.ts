@@ -1,19 +1,19 @@
+import {
+	BaseMsgSchema,
+	MsgType,
+	type PongMsg,
+	parseMessage,
+	type SessionClientJoinedMsg,
+	type SessionClientJoinMsg,
+	type SessionClientLeftMsg,
+	type SessionJoinedMsg,
+} from "@shellular/protocol";
 import { nanoid } from "nanoid";
 import { type WebSocket, WebSocketServer } from "ws";
 import { z } from "zod";
 
 import { logger } from "@/logger";
-import {
-	type ClientToHostMsg,
-	ClientToHostMsgSchema,
-	MsgType,
-	type PongMsg,
-	parseBaseMessage,
-	type SessionClientJoinedMsg,
-	type SessionClientJoinMsg,
-	type SessionClientLeftMsg,
-	type SessionJoinedMsg,
-} from "./protocol";
+import { type ClientToHostMsg, ClientToHostMsgSchema } from "./protocol";
 import {
 	type ClientInfo,
 	getSessionForSocket,
@@ -158,11 +158,13 @@ export function initAppWebSocket() {
 
 		ws.on("message", (raw) => {
 			const rawStr = raw.toString();
-			const parsedBaseMsg = parseBaseMessage(rawStr);
-			if (!parsedBaseMsg) {
+			const parsedBase = parseMessage(rawStr, BaseMsgSchema);
+			if (!parsedBase.data) {
 				sendSessionErrorToClient(ws, "Invalid message format");
 				return;
 			}
+
+			const parsedBaseMsg = parsedBase.data;
 
 			if (parsedBaseMsg.type === MsgType.PING) {
 				const pongMsg: PongMsg = {

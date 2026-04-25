@@ -1,20 +1,20 @@
+import {
+	BaseMsgSchema,
+	MsgType,
+	type PongMsg,
+	parseMessage,
+	SessionClientJoinResultMsgSchema,
+	type SessionHostedMsg,
+	type SessionHostMsg,
+	SessionHostMsgSchema,
+} from "@shellular/protocol";
 import { nanoid } from "nanoid";
 import { type WebSocket, WebSocketServer } from "ws";
 import { z } from "zod";
 
 import { verifyHost } from "@/db";
 import { logger } from "@/logger";
-import {
-	type HostToClientMsg,
-	HostToClientMsgSchema,
-	MsgType,
-	type PongMsg,
-	parseBaseMessage,
-	SessionClientJoinResultMsgSchema,
-	type SessionHostedMsg,
-	type SessionHostMsg,
-	SessionHostMsgSchema,
-} from "./protocol";
+import { type HostToClientMsg, HostToClientMsgSchema } from "./protocol";
 import {
 	createSession,
 	getActiveSessionForHost,
@@ -22,7 +22,7 @@ import {
 	removeSocket,
 	type Session,
 } from "./sessions";
-import { sendSessionErrorToHost } from "./shared";
+import { sendSessionErrorToClient, sendSessionErrorToHost } from "./shared";
 import { resolvePendingClient } from "./ws-app";
 
 export function initCliWebSocket() {
@@ -37,13 +37,13 @@ export function initCliWebSocket() {
 		ws.on("message", (raw) => {
 			const rawStr = raw.toString();
 
-			const parsedBaseMsg = parseBaseMessage(rawStr);
-			if (!parsedBaseMsg) {
-				sendSessionErrorToHost(ws, "Received invalid message format", {
-					rawStr,
-				});
+			const parsedBase = parseMessage(rawStr, BaseMsgSchema);
+			if (!parsedBase.data) {
+				sendSessionErrorToClient(ws, "Invalid message format");
 				return;
 			}
+
+			const parsedBaseMsg = parsedBase.data;
 
 			if (parsedBaseMsg.type === MsgType.PING) {
 				const pongId = `server_${nanoid(8)}`;
@@ -131,7 +131,7 @@ export function initCliWebSocket() {
 }
 
 function handleAuth(ws: WebSocket, msg: SessionHostMsg): Session {
-	const { id: hostId, machineId, hostname, platform, dir } = msg.data;
+	const { id: hostId, machineId, platform } = msg.data;
 
 	if (!hostId || !machineId || !platform) {
 		throw new Error("Missing hostId, machineId, or platform");
@@ -148,14 +148,12 @@ function handleAuth(ws: WebSocket, msg: SessionHostMsg): Session {
 		);
 	}
 
-	const hostInfo = { hostname, platform, dir, machineId };
-
 	const existing = getActiveSessionForHost(hostId);
 	if (existing) {
 		throw new Error("Host already has an active connection");
 	}
 
-	const session = createSession(hostId, ws, hostInfo);
+	const session = createSession(hostId, ws, msg.data);
 
 	// complete handshake with the host (CLI)
 	const hostedId = `server_${nanoid(8)}`;

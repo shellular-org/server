@@ -1,8 +1,8 @@
+import { type HostInfo, MsgType } from "@shellular/protocol";
 import { nanoid } from "nanoid";
 import type { WebSocket } from "ws";
 
 import { sleep } from "@/utils";
-import { MsgType } from "./protocol";
 import { CloseCodeAndReason } from "./shared";
 
 export interface ClientInfo {
@@ -22,12 +22,7 @@ export interface Session {
 	id: string;
 	hostId: string;
 	host: WebSocket;
-	hostInfo: {
-		hostname: string;
-		platform: string;
-		dir: string;
-		machineId: string;
-	};
+	hostInfo: HostInfo;
 	clients: Map<string, ClientInfo>;
 }
 
@@ -37,7 +32,7 @@ const socketToSession = new WeakMap<WebSocket, SocketInfo>();
 export function createSession(
 	hostId: string,
 	host: WebSocket,
-	hostInfo: Session["hostInfo"],
+	hostInfo: HostInfo,
 ): Session {
 	const session: Session = {
 		id: nanoid(8),

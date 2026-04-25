@@ -1,9 +1,9 @@
+import { MsgType, type SessionErrorMsg } from "@shellular/protocol";
 import { nanoid } from "nanoid";
 import type { WebSocket } from "ws";
 
 import { env } from "@/env";
 import { logger } from "@/logger";
-import { MsgType, type SessionErrorMsg } from "./protocol";
 
 function sendSessionErrorMsg(
 	ws: WebSocket,
