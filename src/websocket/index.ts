@@ -1,12 +1,12 @@
 import type http from "node:http";
 import type { Duplex } from "node:stream";
-
+import { ClientInfoSchema } from "@shellular/protocol";
 import type { WebSocket, WebSocketServer } from "ws";
 import { z } from "zod";
 
 import { getHost } from "@/db";
 import { logger } from "@/logger";
-import { getActiveSessionForHost, joinSession, removeSocket } from "./sessions";
+import { getActiveSessionForHost, joinSession } from "./sessions";
 import { CloseCodeAndReason } from "./shared";
 import { initAppWebSocket, requestClientApprovalFromHost } from "./ws-app";
 import { initCliWebSocket } from "./ws-cli";
@@ -15,13 +15,6 @@ const PING_INTERVAL_MS = 30_000;
 
 const HostQuerySchema = z.object({
 	hostId: z.string(),
-});
-
-const ClientQuerySchema = z.object({
-	hostId: z.string(),
-	clientId: z.string(),
-	appVersion: z.string(),
-	platform: z.string(),
 });
 
 const cliWsServer = initCliWebSocket();
@@ -81,7 +74,7 @@ async function handleUpgradeRequest(
 
 	if (pathname === "/app") {
 		// async approval before upgrade is fine
-		const parsed = ClientQuerySchema.safeParse(query);
+		const parsed = ClientInfoSchema.safeParse(query);
 
 		appWsServer.handleUpgrade(request, socket, head, async (ws) => {
 			if (!parsed.success) {
@@ -90,7 +83,7 @@ async function handleUpgradeRequest(
 				return;
 			}
 
-			const { hostId, clientId, appVersion, platform } = parsed.data;
+			const { hostId } = parsed.data;
 			const host = getHost(hostId);
 			if (!host) {
 				const { code, reason } = CloseCodeAndReason.HOST_UNAVAILABLE;
@@ -105,23 +98,17 @@ async function handleUpgradeRequest(
 				return;
 			}
 
-			const approval = await requestClientApprovalFromHost(session, {
-				clientId,
-				appVersion,
-				platform,
-			});
+			const approval = await requestClientApprovalFromHost(
+				session,
+				parsed.data,
+			);
 			if (!approval.approved) {
 				const { code, reason } = CloseCodeAndReason.APPROVAL_DENIED;
 				closeWithError(ws, code, reason);
 				return;
 			}
 
-			const joined = joinSession(session.id, {
-				id: clientId,
-				ws,
-				appVersion,
-				platform,
-			});
+			const joined = joinSession(session.id, ws, parsed.data);
 			if (!joined) {
 				const { code, reason } = CloseCodeAndReason.SESSION_JOIN_FAILED;
 				closeWithError(ws, code, reason);
@@ -159,10 +146,6 @@ function setupKeepAlive(wsServer: WebSocketServer) {
 	setInterval(() => {
 		for (const ws of wsServer.clients) {
 			if (!aliveSet.has(ws)) {
-				removeSocket(ws).then(() => {
-					logger.info("Terminating unresponsive WebSocket connection");
-					ws.terminate();
-				});
 				continue;
 			}
 

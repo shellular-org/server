@@ -14,7 +14,8 @@
 	"license": "MIT",
 	"type": "commonjs",
 	"dependencies": {
-		"@shellular/protocol": "^0.0.3",
+		"@shellular/protocol": "^0.0.4",
+		"better-sqlite3": "^12.9.0",
 		"dotenv": "^17.4.1",
 		"express": "^5.2.1",
 		"googleapis": "^171.4.0",
@@ -27,7 +28,6 @@
 		"@types/better-sqlite3": "^7.6.13",
 		"@types/express": "^5.0.6",
 		"@types/ws": "^8.18.1",
-		"better-sqlite3": "^12.9.0",
 		"tsx": "^4.21.0",
 		"typescript": "^6.0.2"
 	},

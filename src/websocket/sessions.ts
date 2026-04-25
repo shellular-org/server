@@ -1,15 +1,13 @@
-import { type HostInfo, MsgType } from "@shellular/protocol";
+import { type ClientInfo, type HostInfo, MsgType } from "@shellular/protocol";
 import { nanoid } from "nanoid";
 import type { WebSocket } from "ws";
 
 import { sleep } from "@/utils";
 import { CloseCodeAndReason } from "./shared";
 
-export interface ClientInfo {
+export interface ClientInfoWithWebSocket {
 	ws: WebSocket;
-	appVersion: string;
-	platform: string;
-	clientId: string;
+	info: ClientInfo;
 }
 
 export type SocketRole = "host" | "client";
@@ -23,7 +21,7 @@ export interface Session {
 	hostId: string;
 	host: WebSocket;
 	hostInfo: HostInfo;
-	clients: Map<string, ClientInfo>;
+	clients: Map<string, ClientInfoWithWebSocket>;
 }
 
 const sessions = new Map<string, Session>();
@@ -48,28 +46,24 @@ export function createSession(
 
 export function joinSession(
 	sessionId: string,
-	client: {
-		id: string;
-		ws: WebSocket;
-		appVersion: string;
-		platform: string;
-	},
+	clientWs: WebSocket,
+	clientInfo: ClientInfo,
 ): Session | null {
 	const session = sessions.get(sessionId);
 	if (!session?.host) {
 		return null;
 	}
-	const clientInfo: ClientInfo = {
-		ws: client.ws,
-		appVersion: client.appVersion,
-		platform: client.platform,
-		clientId: client.id,
+
+	const clientInfoWithWs: ClientInfoWithWebSocket = {
+		ws: clientWs,
+		info: clientInfo,
 	};
-	session.clients.set(client.id, clientInfo);
-	socketToSession.set(client.ws, {
+
+	session.clients.set(clientInfo.clientId, clientInfoWithWs);
+	socketToSession.set(clientWs, {
 		session,
 		role: "client",
-		clientId: client.id,
+		clientId: clientInfo.clientId,
 	});
 	return session;
 }

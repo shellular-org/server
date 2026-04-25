@@ -1,5 +1,6 @@
 import {
 	BaseMsgSchema,
+	type ClientInfo,
 	MsgType,
 	type PongMsg,
 	parseMessage,
@@ -14,12 +15,7 @@ import { z } from "zod";
 
 import { logger } from "@/logger";
 import { type ClientToHostMsg, ClientToHostMsgSchema } from "./protocol";
-import {
-	type ClientInfo,
-	getSessionForSocket,
-	removeSocket,
-	type Session,
-} from "./sessions";
+import { getSessionForSocket, removeSocket, type Session } from "./sessions";
 import { sendSessionErrorToClient } from "./shared";
 
 const CLIENT_APPROVAL_TIMEOUT_MS = 60_000;
@@ -53,13 +49,9 @@ export function isClientOccupied(session: Session, clientId: string): boolean {
 
 export function requestClientApprovalFromHost(
 	session: Session,
-	{
-		clientId,
-		appVersion,
-		platform,
-	}: { clientId: string; appVersion: string; platform: string },
+	clientInfo: ClientInfo,
 ): Promise<ApprovalDecision> {
-	if (isClientOccupied(session, clientId)) {
+	if (isClientOccupied(session, clientInfo.clientId)) {
 		return Promise.resolve({
 			approved: false,
 			reason: "Client is already connected or pending approval",
@@ -68,26 +60,26 @@ export function requestClientApprovalFromHost(
 
 	return new Promise((resolve) => {
 		const timer = setTimeout(() => {
-			const entry = preUpgradeApprovals.get(clientId);
+			const entry = preUpgradeApprovals.get(clientInfo.clientId);
 			if (!entry) {
 				return;
 			}
 
-			preUpgradeApprovals.delete(clientId);
+			preUpgradeApprovals.delete(clientInfo.clientId);
 			resolve({ approved: false, reason: "Connection request timed out" });
 		}, CLIENT_APPROVAL_TIMEOUT_MS);
 
-		preUpgradeApprovals.set(clientId, {
+		preUpgradeApprovals.set(clientInfo.clientId, {
 			hostId: session.hostId,
 			timer,
 			resolve,
 		});
 
 		try {
-			notifyHostPendingClient(session.host, clientId, appVersion, platform);
+			notifyHostPendingClient(session.host, clientInfo);
 		} catch {
 			clearTimeout(timer);
-			preUpgradeApprovals.delete(clientId);
+			preUpgradeApprovals.delete(clientInfo.clientId);
 			resolve({ approved: false, reason: "Failed to reach host" });
 		}
 	});
@@ -116,13 +108,11 @@ export function resolvePendingClient(
 
 function notifyHostPendingClient(
 	host: WebSocket,
-	clientId: string,
-	appVersion: string,
-	platform: string,
+	clientInfo: ClientInfo,
 ): void {
 	const joinMsg: SessionClientJoinMsg = {
 		type: MsgType.SESSION_CLIENT_JOIN,
-		data: { clientId, appVersion, platform },
+		data: clientInfo,
 	};
 	host.send(JSON.stringify({ id: `server_${nanoid(8)}`, ...joinMsg }));
 }
@@ -142,8 +132,8 @@ export function initAppWebSocket() {
 		}
 
 		const { session, clientId } = entry;
-		const clientInfo = session.clients.get(clientId);
-		if (!clientInfo || clientInfo.ws !== ws) {
+		const clientWithWs = session.clients.get(clientId);
+		if (!clientWithWs || clientWithWs.ws !== ws) {
 			sendSessionErrorToClient(
 				ws,
 				"Something went wrong with this connection: info issue",
@@ -154,7 +144,7 @@ export function initAppWebSocket() {
 		}
 
 		sendJoinedHandshake(ws, session);
-		notifyHostClientJoined(session, clientInfo);
+		notifyHostClientJoined(session, clientWithWs.info);
 
 		ws.on("message", (raw) => {
 			const rawStr = raw.toString();
@@ -236,11 +226,7 @@ function notifyHostClientJoined(
 ): void {
 	const clientJoinedMsg: SessionClientJoinedMsg = {
 		type: MsgType.SESSION_CLIENT_JOINED,
-		data: {
-			clientId: clientInfo.clientId,
-			appVersion: clientInfo.appVersion,
-			platform: clientInfo.platform,
-		},
+		data: clientInfo,
 	};
 	session.host.send(
 		JSON.stringify({ id: `server_${nanoid(8)}`, ...clientJoinedMsg }),
