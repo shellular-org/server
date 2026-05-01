@@ -1,13 +1,14 @@
 import type http from "node:http";
 import type { Duplex } from "node:stream";
+
 import { ClientInfoSchema } from "@shellular/protocol";
 import type { WebSocket, WebSocketServer } from "ws";
 import { z } from "zod";
 
-import { getHost } from "@/db";
+import { getHost } from "@/db/host";
 import { logger } from "@/logger";
 import { getActiveSessionForHost, joinSession } from "./sessions";
-import { CloseCodeAndReason } from "./shared";
+import { CloseCodeAndReason, closeWsWithError } from "./shared";
 import { initAppWebSocket, requestClientApprovalFromHost } from "./ws-app";
 import { initCliWebSocket } from "./ws-cli";
 
@@ -31,11 +32,6 @@ export function initWebSocketRelay(server: http.Server) {
 	return { cliWsServer, appWsServer };
 }
 
-function closeWithError(ws: WebSocket, code: number, reason: string) {
-	// reason should stay short (<123 bytes)
-	ws.close(code, reason.slice(0, 123));
-}
-
 async function handleUpgradeRequest(
 	request: http.IncomingMessage,
 	socket: Duplex,
@@ -55,14 +51,14 @@ async function handleUpgradeRequest(
 			const parsed = HostQuerySchema.safeParse(query);
 			if (!parsed.success) {
 				const { code, reason } = CloseCodeAndReason.INVALID_QUERY;
-				closeWithError(ws, code, reason);
+				closeWsWithError(ws, code, reason);
 				return;
 			}
 
 			const { hostId } = parsed.data;
 			if (!getHost(hostId)) {
 				const { code, reason } = CloseCodeAndReason.HOST_UNAVAILABLE;
-				closeWithError(ws, code, reason);
+				closeWsWithError(ws, code, reason);
 				return;
 			}
 
@@ -79,7 +75,8 @@ async function handleUpgradeRequest(
 		appWsServer.handleUpgrade(request, socket, head, async (ws) => {
 			if (!parsed.success) {
 				const { code, reason } = CloseCodeAndReason.INVALID_QUERY;
-				closeWithError(ws, code, reason);
+				logger.info("Rejecting app websocket: invalid query");
+				closeWsWithError(ws, code, reason);
 				return;
 			}
 
@@ -87,14 +84,18 @@ async function handleUpgradeRequest(
 			const host = getHost(hostId);
 			if (!host) {
 				const { code, reason } = CloseCodeAndReason.HOST_UNAVAILABLE;
-				closeWithError(ws, code, reason);
+				logger.info(`Rejecting app websocket: host ${hostId} doesn't exist`);
+				closeWsWithError(ws, code, reason);
 				return;
 			}
 
 			const session = getActiveSessionForHost(hostId);
 			if (!session) {
 				const { code, reason } = CloseCodeAndReason.HOST_UNAVAILABLE;
-				closeWithError(ws, code, reason);
+				logger.info(
+					`Rejecting app websocket: no active session for hostId=${hostId}`,
+				);
+				closeWsWithError(ws, code, reason);
 				return;
 			}
 
@@ -104,14 +105,20 @@ async function handleUpgradeRequest(
 			);
 			if (!approval.approved) {
 				const { code, reason } = CloseCodeAndReason.APPROVAL_DENIED;
-				closeWithError(ws, code, reason);
+				logger.info(
+					`Rejecting app websocket: approval denied for hostId=${hostId} clientId=${parsed.data.clientId} reason=${approval.reason}`,
+				);
+				closeWsWithError(ws, code, reason);
 				return;
 			}
 
 			const joined = joinSession(session.id, ws, parsed.data);
 			if (!joined) {
 				const { code, reason } = CloseCodeAndReason.SESSION_JOIN_FAILED;
-				closeWithError(ws, code, reason);
+				logger.info(
+					`Rejecting app websocket: join failed for hostId=${hostId} clientId=${parsed.data.clientId}`,
+				);
+				closeWsWithError(ws, code, reason);
 				return;
 			}
 
