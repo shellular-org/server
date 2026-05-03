@@ -1,6 +1,7 @@
 import { nanoid } from "nanoid";
 
 import { env } from "@/env";
+import { ConflictError } from "@/error/http";
 import { logger } from "@/logger";
 import { db } from "./index";
 
@@ -12,6 +13,20 @@ type Host = {
 };
 
 export function registerHost(machineId: string, platform: string): string {
+	const countStmt = db.prepare(
+		"SELECT COUNT(*) as count FROM hosts WHERE machineId = ?",
+	);
+	const { count } = countStmt.get(machineId) as { count: number };
+
+	if (count >= 3) {
+		logger.error(
+			`Suspicious activity: machineId ${machineId} already has ${count} registrations`,
+		);
+		throw new ConflictError(
+			`Suspicious activity: This machine already has registered hosts. If you believe this is an error, please contact support at ${env.CONTACT_EMAIL}.`,
+		);
+	}
+
 	const hostId = nanoid(12);
 	const createdAt = Date.now();
 

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { initConfig } from "@/config";
 import { registerHost } from "@/db/host";
 import { env } from "@/env";
+import { HttpError } from "@/error/http";
 import { logger } from "@/logger";
 import cors from "@/middleware/cors";
 import { initWebSocketRelay } from "@/websocket/index";
@@ -60,18 +61,7 @@ const HostRegisterReqSchema = z.object({
 });
 
 app.post("/register", (req, res) => {
-	const result = HostRegisterReqSchema.safeParse(req.body);
-
-	if (!result.success) {
-		res.status(400).json({
-			success: false,
-			error: "Invalid request",
-			details: z.treeifyError(result.error),
-		});
-		return;
-	}
-
-	const { machineId, platform } = result.data;
+	const { machineId, platform } = HostRegisterReqSchema.parse(req.body);
 	const hostId = registerHost(machineId, platform);
 	res.json({
 		success: true,
@@ -86,7 +76,21 @@ app.use(
 		res: express.Response,
 		_next: express.NextFunction,
 	) => {
-		logger.error("Unhandled request error:", err);
+		if (err instanceof z.ZodError) {
+			res.status(400).json({
+				success: false,
+				error: err.message,
+			});
+			return;
+		} else if (err instanceof HttpError && err.statusCode < 500) {
+			res.status(err.statusCode).json({
+				success: false,
+				error: err.message,
+			});
+			return;
+		}
+
+		logger.error("Internal error:", err);
 		res.status(500).json({ error: "Internal server error" });
 	},
 );

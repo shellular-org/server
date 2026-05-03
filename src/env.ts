@@ -8,6 +8,7 @@ const envSchema = z.object({
 	PORT: z.string().transform(Number).default(6969),
 	CORS_ORIGIN: z.string().min(1).default("*"),
 	NODE_ENV: z.enum(["dev", "prod"]),
+	CONTACT_EMAIL: z.email().default("team@shellular.dev"),
 	// Google Sheets integration (optional — skipped if not set)
 	WAITLIST_GOOGLE_SHEET_ID: z.string().optional(),
 });
