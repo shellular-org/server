@@ -2,13 +2,13 @@ import { createServer } from "node:http";
 
 import express from "express";
 import { z } from "zod";
-
 import { initConfig } from "@/config";
-import { registerHost } from "@/db/host";
 import { env } from "@/env";
 import { HttpError } from "@/error/http";
 import { logger } from "@/logger";
 import cors from "@/middleware/cors";
+import { router as hostRouter } from "@/routes/host";
+import { printRoutes } from "@/utils/express";
 import { initWebSocketRelay } from "@/websocket/index";
 
 process.on("uncaughtException", (err) => {
@@ -23,8 +23,12 @@ initConfig();
 
 const app = express();
 
+app.set("trust proxy", 1); // trust first proxy (if behind a proxy like nginx or cloudflare)
+
 app.use(cors);
 app.use(express.json());
+
+app.use(hostRouter);
 
 app.use((req, res, next) => {
 	const start = Date.now();
@@ -32,8 +36,7 @@ app.use((req, res, next) => {
 	res.on("finish", () => {
 		const duration = Date.now() - start;
 
-		const ip =
-			req.headers["x-real-ip"] || req.headers["x-forwarded-for"] || req.ip;
+		const ip = req.ip;
 
 		const logMsg = JSON.stringify({
 			method: req.method,
@@ -55,20 +58,6 @@ app.use((req, res, next) => {
 
 app.get("/health", (_req, res) => {
 	res.json({ message: "OK" });
-});
-
-const HostRegisterReqSchema = z.object({
-	machineId: z.string().min(1),
-	platform: z.string().min(1),
-});
-
-app.post("/register", (req, res) => {
-	const { machineId, platform } = HostRegisterReqSchema.parse(req.body);
-	const hostId = registerHost(machineId, platform);
-	res.json({
-		success: true,
-		data: { hostId },
-	});
 });
 
 app.use(
@@ -103,3 +92,5 @@ initWebSocketRelay(server);
 server.listen(env.PORT, env.HOST, () => {
 	logger.info(`Server is running on port ${env.PORT}`);
 });
+
+printRoutes(app);
