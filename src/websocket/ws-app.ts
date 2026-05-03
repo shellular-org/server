@@ -16,7 +16,7 @@ import { z } from "zod";
 import { logger } from "@/logger";
 import { type ClientToHostMsg, ClientToHostMsgSchema } from "./protocol";
 import { getSessionForSocket, removeSocket, type Session } from "./sessions";
-import { sendSessionErrorToClient } from "./shared";
+import { CloseCodeAndReason, sendSessionErrorToClient } from "./shared";
 
 const CLIENT_APPROVAL_TIMEOUT_MS = 60_000;
 
@@ -41,7 +41,8 @@ export function isClientOccupied(session: Session, clientId: string): boolean {
 	const existingClient = session.clients.get(clientId);
 	if (existingClient) {
 		// User might be switching from one device to another, so we allow a new connection to take over an existing one.
-		existingClient.ws.close();
+		const { code, reason } = CloseCodeAndReason.CLIENT_REPLACED;
+		existingClient.ws.close(code, reason);
 		session.clients.delete(clientId);
 	}
 	return preUpgradeApprovals.has(clientId);
@@ -52,6 +53,9 @@ export function requestClientApprovalFromHost(
 	clientInfo: ClientInfo,
 ): Promise<ApprovalDecision> {
 	if (isClientOccupied(session, clientInfo.clientId)) {
+		logger.info(
+			`Denying pending app join for hostId=${session.hostId} clientId=${clientInfo.clientId}: occupied or pending`,
+		);
 		return Promise.resolve({
 			approved: false,
 			reason: "Client is already connected or pending approval",
@@ -66,6 +70,9 @@ export function requestClientApprovalFromHost(
 			}
 
 			preUpgradeApprovals.delete(clientInfo.clientId);
+			logger.info(
+				`App join approval timed out for hostId=${session.hostId} clientId=${clientInfo.clientId}`,
+			);
 			resolve({ approved: false, reason: "Connection request timed out" });
 		}, CLIENT_APPROVAL_TIMEOUT_MS);
 
@@ -76,10 +83,16 @@ export function requestClientApprovalFromHost(
 		});
 
 		try {
+			logger.info(
+				`Requesting app join approval for hostId=${session.hostId} clientId=${clientInfo.clientId}`,
+			);
 			notifyHostPendingClient(session.host, clientInfo);
 		} catch {
 			clearTimeout(timer);
 			preUpgradeApprovals.delete(clientInfo.clientId);
+			logger.info(
+				`Failed to notify host about app join for hostId=${session.hostId} clientId=${clientInfo.clientId}`,
+			);
 			resolve({ approved: false, reason: "Failed to reach host" });
 		}
 	});
@@ -99,6 +112,9 @@ export function resolvePendingClient(
 
 	clearTimeout(preUpgradeEntry.timer);
 	preUpgradeApprovals.delete(clientId);
+	logger.info(
+		`Resolved app join approval for hostId=${preUpgradeEntry.hostId} clientId=${clientId} approved=${approved}`,
+	);
 	preUpgradeEntry.resolve(
 		approved
 			? { approved: true, reason: "" }
@@ -121,8 +137,10 @@ export function initAppWebSocket() {
 	const wsServer = new WebSocketServer({ noServer: true });
 
 	wsServer.on("connection", (ws) => {
+		logger.info("App websocket connection established");
 		const entry = getSessionForSocket(ws);
 		if (!entry || entry.role !== "client") {
+			logger.info("Closing app websocket: missing or invalid session role");
 			sendSessionErrorToClient(
 				ws,
 				"Something went wrong with this connection: role issue",
@@ -134,6 +152,9 @@ export function initAppWebSocket() {
 		const { session, clientId } = entry;
 		const clientWithWs = session.clients.get(clientId);
 		if (!clientWithWs || clientWithWs.ws !== ws) {
+			logger.info(
+				`Closing app websocket: session info mismatch for hostId=${session.hostId} clientId=${clientId}`,
+			);
 			sendSessionErrorToClient(
 				ws,
 				"Something went wrong with this connection: info issue",
@@ -183,12 +204,16 @@ export function initAppWebSocket() {
 			relayToCli(ws, msg.data);
 		});
 
-		ws.on("close", () => {
+		ws.on("close", (code, reason) => {
+			logger.info(
+				`App websocket closed code=${code} reason=${reason.toString() || "<empty>"}`,
+			);
 			const entry = getSessionForSocket(ws);
 			if (entry && entry.role === "client" && entry.clientId) {
 				// Notify CLI that client disconnected
 				const { session, clientId } = entry;
-				if (session.host) {
+				const activeClient = session.clients.get(clientId);
+				if (session.host && activeClient?.ws === ws) {
 					const respMsg: SessionClientLeftMsg = {
 						type: MsgType.SESSION_CLIENT_LEFT,
 						data: { clientId },
@@ -204,7 +229,8 @@ export function initAppWebSocket() {
 			removeSocket(ws);
 		});
 
-		ws.on("error", () => {
+		ws.on("error", (err) => {
+			logger.error("App websocket error", err);
 			removeSocket(ws);
 		});
 	});

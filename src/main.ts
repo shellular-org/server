@@ -1,11 +1,12 @@
 import { createServer } from "node:http";
+
 import express from "express";
 import { z } from "zod";
 
 import { initConfig } from "@/config";
-import { addToWaitlist, registerHost } from "@/db";
+import { registerHost } from "@/db/host";
 import { env } from "@/env";
-import { appendWaitlistToSheet } from "@/helpers/google-sheets";
+import { HttpError } from "@/error/http";
 import { logger } from "@/logger";
 import cors from "@/middleware/cors";
 import { initWebSocketRelay } from "@/websocket/index";
@@ -60,62 +61,12 @@ const HostRegisterReqSchema = z.object({
 });
 
 app.post("/register", (req, res) => {
-	const result = HostRegisterReqSchema.safeParse(req.body);
-
-	if (!result.success) {
-		res.status(400).json({
-			success: false,
-			error: "Invalid request",
-			details: z.treeifyError(result.error),
-		});
-		return;
-	}
-
-	const { machineId, platform } = result.data;
+	const { machineId, platform } = HostRegisterReqSchema.parse(req.body);
 	const hostId = registerHost(machineId, platform);
 	res.json({
 		success: true,
 		data: { hostId },
 	});
-});
-
-// ─── Waitlist ─────────────────────────────────────────────
-const WaitlistReqSchema = z.object({
-	name: z.string().min(1),
-	email: z.email(),
-	social: z.string().optional(),
-	platforms: z
-		.array(z.enum(["android", "ios"]))
-		.min(1, "At least one platform is required"),
-});
-
-app.post("/waitlist", async (req, res) => {
-	const result = WaitlistReqSchema.safeParse(req.body);
-
-	if (!result.success) {
-		res.status(400).json({
-			success: false,
-			error: "Invalid request",
-			details: z.treeifyError(result.error),
-		});
-		return;
-	}
-
-	const { name, email, social = "", platforms } = result.data;
-	const platformStr = platforms.join(",");
-	const { alreadyJoined } = addToWaitlist(
-		name,
-		email,
-		social || null,
-		platformStr,
-	);
-
-	if (!alreadyJoined) {
-		// Fire-and-forget — don't block the response on Sheets
-		appendWaitlistToSheet({ name, email, social, platforms: platformStr });
-	}
-
-	res.json({ success: true, alreadyJoined });
 });
 
 app.use(
@@ -125,7 +76,21 @@ app.use(
 		res: express.Response,
 		_next: express.NextFunction,
 	) => {
-		logger.error("Unhandled request error:", err);
+		if (err instanceof z.ZodError) {
+			res.status(400).json({
+				success: false,
+				error: err.message,
+			});
+			return;
+		} else if (err instanceof HttpError && err.statusCode < 500) {
+			res.status(err.statusCode).json({
+				success: false,
+				error: err.message,
+			});
+			return;
+		}
+
+		logger.error("Internal error:", err);
 		res.status(500).json({ error: "Internal server error" });
 	},
 );

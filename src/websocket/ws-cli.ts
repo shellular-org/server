@@ -12,7 +12,7 @@ import { nanoid } from "nanoid";
 import { type WebSocket, WebSocketServer } from "ws";
 import { z } from "zod";
 
-import { verifyHost } from "@/db";
+import { getHost, verifyHost } from "@/db/host";
 import { logger } from "@/logger";
 import { type HostToClientMsg, HostToClientMsgSchema } from "./protocol";
 import {
@@ -22,7 +22,12 @@ import {
 	removeSocket,
 	type Session,
 } from "./sessions";
-import { sendSessionErrorToClient, sendSessionErrorToHost } from "./shared";
+import {
+	CloseCodeAndReason,
+	closeWsWithError,
+	sendSessionErrorToClient,
+	sendSessionErrorToHost,
+} from "./shared";
 import { resolvePendingClient } from "./ws-app";
 
 export function initCliWebSocket() {
@@ -72,12 +77,10 @@ export function initCliWebSocket() {
 				try {
 					session = handleAuth(ws, msg.data);
 				} catch (err) {
-					sendSessionErrorToHost(
-						ws,
-						err instanceof Error
-							? err.message
-							: "Something went wrong during authentication",
-					);
+					logger.error("Host authentication failed", err);
+					const { code, reason } = CloseCodeAndReason.HOST_AUTH_FAILED;
+					closeWsWithError(ws, code, reason);
+					return;
 				}
 
 				return;
@@ -137,12 +140,17 @@ function handleAuth(ws: WebSocket, msg: SessionHostMsg): Session {
 		throw new Error("Missing hostId, machineId, or platform");
 	}
 
-	const host = verifyHost(hostId, machineId, platform);
+	const host = getHost(hostId);
 	if (!host) {
 		throw new Error("Unknown host");
 	}
 
-	if (host.machineId !== machineId) {
+	const verified = verifyHost(host, {
+		id: hostId,
+		machineId,
+		platform,
+	});
+	if (!verified) {
 		throw new Error(
 			"Suspicious host: Machine ID is different from the registered one",
 		);
