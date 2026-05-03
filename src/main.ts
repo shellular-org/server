@@ -31,7 +31,9 @@ app.use((req, res, next) => {
 
 	res.on("finish", () => {
 		const duration = Date.now() - start;
-		const ip = req.headers["cf-connecting-ip"] || req.ip;
+
+		const ip =
+			req.headers["x-real-ip"] || req.headers["x-forwarded-for"] || req.ip;
 
 		const logMsg = JSON.stringify({
 			method: req.method,
