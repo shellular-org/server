@@ -32,7 +32,7 @@ const registerLimiter = rateLimit({
 });
 
 const HostRegisterReqSchema = z.object({
-	machineId: z.string().min(1),
+	machineId: z.string().min(16).max(128),
 	platform: z.enum([
 		"aix",
 		"android",
@@ -47,7 +47,20 @@ const HostRegisterReqSchema = z.object({
 
 // keeping /register for backwards compatibility. will remove it in a week.
 router.post(["/register", "/host/register"], registerLimiter, (req, res) => {
-	const { machineId, platform } = HostRegisterReqSchema.parse(req.body);
+	const parseResult = HostRegisterReqSchema.safeParse(req.body);
+	if (!parseResult.success) {
+		// we won't send zod error for security reasons
+		// altho our code is open source so it could still be fucked with
+		// but at least it won't be as easy to figure out the exact validation rules
+		// without looking at the source code
+		res.status(400).json({
+			success: false,
+			error: "invalid request body",
+		});
+		return;
+	}
+
+	const { machineId, platform } = parseResult.data;
 	const hostId = registerHost(machineId, platform);
 	res.json({
 		success: true,
