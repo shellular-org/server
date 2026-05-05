@@ -33,7 +33,16 @@ const registerLimiter = rateLimit({
 
 const HostRegisterReqSchema = z.object({
 	machineId: z.string().min(1),
-	platform: z.string().min(1),
+	platform: z.enum([
+		"aix",
+		"android",
+		"darwin",
+		"freebsd",
+		"linux",
+		"openbsd",
+		"sunos",
+		"win32",
+	]),
 });
 
 // keeping /register for backwards compatibility. will remove it in a week.
