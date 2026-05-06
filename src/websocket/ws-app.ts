@@ -13,6 +13,7 @@ import { nanoid } from "nanoid";
 import { type WebSocket, WebSocketServer } from "ws";
 import { z } from "zod";
 
+import { registerClient } from "@/db/client";
 import { logger } from "@/logger";
 import { type ClientToHostMsg, ClientToHostMsgSchema } from "./protocol";
 import { getSessionForSocket, removeSocket, type Session } from "./sessions";
@@ -166,6 +167,7 @@ export function initAppWebSocket() {
 
 		sendJoinedHandshake(ws, session);
 		notifyHostClientJoined(session, clientWithWs.info);
+		registerClient(clientWithWs.info);
 
 		ws.on("message", (raw) => {
 			const rawStr = raw.toString();
