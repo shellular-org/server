@@ -19,7 +19,6 @@
 		"dotenv": "^17.4.1",
 		"express": "^5.2.1",
 		"express-rate-limit": "^8.4.1",
-		"googleapis": "^171.4.0",
 		"nanoid": "^5.1.7",
 		"ws": "^8.20.0",
 		"zod": "^4.3.6"
