@@ -1,9 +1,11 @@
 import { Router } from "express";
 import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
+
 import { registerHost } from "@/db/host";
-import { BadRequestError, TooManyRequestsError } from "@/error/http";
+import { ForbiddenError, TooManyRequestsError } from "@/error/http";
 import { logger } from "@/logger";
+import { userAgentFilter } from "@/middleware/user-agent-filter";
 
 export const router = Router();
 
@@ -13,7 +15,7 @@ const registerLimiter = rateLimit({
 	standardHeaders: false, // disable `RateLimit` header
 	legacyHeaders: false, // disable `X-RateLimit-*`
 
-	handler: (req, res) => {
+	handler: (req, _res) => {
 		logger.error(
 			JSON.stringify({
 				event: "RATE_LIMIT_EXCEEDED",
@@ -46,20 +48,25 @@ const HostRegisterReqSchema = z.object({
 });
 
 // keeping /register for backwards compatibility. will remove it in a week.
-router.post(["/register", "/host/register"], registerLimiter, (req, res) => {
-	const parseResult = HostRegisterReqSchema.safeParse(req.body);
-	if (!parseResult.success) {
-		// we won't send zod error for security reasons
-		// altho our code is open source so it could still be fucked with
-		// but at least it won't be as easy to figure out the exact validation rules
-		// without looking at the source code
-		throw new BadRequestError("Invalid request body");
-	}
+router.post(
+	["/register", "/host/register"],
+	userAgentFilter([/^shellular\/\d+\.\d+\.\d+$/]),
+	registerLimiter,
+	(req, res) => {
+		const parseResult = HostRegisterReqSchema.safeParse(req.body);
+		if (!parseResult.success) {
+			// we won't send zod error for security reasons
+			// altho our code is open source so it could still be fucked with
+			// but at least it won't be as easy to figure out the exact validation rules
+			// without looking at the source code
+			throw new ForbiddenError("Invalid request");
+		}
 
-	const { machineId, platform } = parseResult.data;
-	const hostId = registerHost(machineId, platform);
-	res.json({
-		success: true,
-		data: { hostId },
-	});
-});
+		const { machineId, platform } = parseResult.data;
+		const hostId = registerHost(machineId, platform);
+		res.json({
+			success: true,
+			data: { hostId },
+		});
+	},
+);

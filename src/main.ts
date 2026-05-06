@@ -44,6 +44,7 @@ app.use((req, res, next) => {
 			status: res.statusCode,
 			duration,
 			ip,
+			userAgent: req.headers["user-agent"] || "-",
 		});
 
 		if (res.statusCode >= 400) {

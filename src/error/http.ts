@@ -13,6 +13,12 @@ export class BadRequestError extends HttpError {
 	}
 }
 
+export class ForbiddenError extends HttpError {
+	constructor(message: string) {
+		super(403, message);
+	}
+}
+
 export class TooManyRequestsError extends HttpError {
 	constructor(message: string) {
 		super(429, message);
