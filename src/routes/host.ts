@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
-
 import { registerHost } from "@/db/host";
+import { BadRequestError, TooManyRequestsError } from "@/error/http";
 import { logger } from "@/logger";
 
 export const router = Router();
@@ -25,9 +25,9 @@ const registerLimiter = rateLimit({
 			}),
 		);
 
-		res.status(429).json({
-			error: "Too many requests, please try again later.",
-		});
+		throw new TooManyRequestsError(
+			"Too many requests, please try again later.",
+		);
 	},
 });
 
@@ -53,11 +53,7 @@ router.post(["/register", "/host/register"], registerLimiter, (req, res) => {
 		// altho our code is open source so it could still be fucked with
 		// but at least it won't be as easy to figure out the exact validation rules
 		// without looking at the source code
-		res.status(400).json({
-			success: false,
-			error: "invalid request body",
-		});
-		return;
+		throw new BadRequestError("Invalid request body");
 	}
 
 	const { machineId, platform } = parseResult.data;
