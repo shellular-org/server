@@ -5,6 +5,7 @@ import { ClientInfoSchema } from "@shellular/protocol";
 import type { WebSocket, WebSocketServer } from "ws";
 import { z } from "zod";
 
+import { getClient, verifyClient } from "@/db/client";
 import { getHost } from "@/db/host";
 import { logger } from "@/logger";
 import { getActiveSessionForHost, joinSession } from "./sessions";
@@ -83,8 +84,18 @@ async function handleUpgradeRequest(
 			const { hostId } = parsed.data;
 			const host = getHost(hostId);
 			if (!host) {
-				const { code, reason } = CloseCodeAndReason.HOST_UNAVAILABLE;
 				logger.info(`Rejecting app websocket: host ${hostId} doesn't exist`);
+				const { code, reason } = CloseCodeAndReason.HOST_UNAVAILABLE;
+				closeWsWithError(ws, code, reason);
+				return;
+			}
+
+			const existingClient = getClient(parsed.data.clientId);
+			if (existingClient && !verifyClient(parsed.data)) {
+				logger.info(
+					`Rejecting app websocket: client verification failed for clientId=${parsed.data.clientId}`,
+				);
+				const { code, reason } = CloseCodeAndReason.INVALID_QUERY;
 				closeWsWithError(ws, code, reason);
 				return;
 			}
