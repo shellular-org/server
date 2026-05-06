@@ -1,3 +1,6 @@
+/** biome-ignore-all lint/suspicious/noExplicitAny: <middleware.route has a methods property, but it's not there in type for some reason> */
+/** biome-ignore-all lint/style/noNonNullAssertion: <we are setting map's value before using it using map.get> */
+
 import type express from "express";
 
 import { logger } from "@/logger";
