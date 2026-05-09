@@ -9,7 +9,7 @@ import {
 	SessionHostMsgSchema,
 } from "@shellular/protocol";
 import { nanoid } from "nanoid";
-import { type WebSocket, WebSocketServer } from "ws";
+import { type RawData, type WebSocket, WebSocketServer } from "ws";
 import { z } from "zod";
 
 import { getHost, verifyHost } from "@/db/host";
@@ -30,6 +30,9 @@ import {
 } from "./shared";
 import { resolvePendingClient } from "./ws-app";
 
+const PROXY_BINARY_MAGIC = Buffer.from("SHPB");
+const PROXY_BINARY_HEADER_BYTES = 4 + 1 + 1 + 1 + 24;
+
 export function initCliWebSocket() {
 	const wsServer = new WebSocketServer({ noServer: true });
 	wsServer.on("connection", (ws) => {
@@ -39,7 +42,20 @@ export function initCliWebSocket() {
 		 */
 		let session: Session | null = null;
 
-		ws.on("message", (raw) => {
+		ws.on("message", (raw, isBinary) => {
+			if (isBinary) {
+				if (!session) {
+					sendSessionErrorToHost(
+						ws,
+						"Received binary proxy frame before authentication",
+					);
+					return;
+				}
+
+				relayBinaryToApp(ws, rawToBuffer(raw));
+				return;
+			}
+
 			const rawStr = raw.toString();
 
 			const parsedBase = parseMessage(rawStr, BaseMsgSchema);
@@ -133,6 +149,18 @@ export function initCliWebSocket() {
 	return wsServer;
 }
 
+function rawToBuffer(raw: RawData): Buffer {
+	if (Buffer.isBuffer(raw)) {
+		return raw;
+	}
+
+	if (Array.isArray(raw)) {
+		return Buffer.concat(raw);
+	}
+
+	return Buffer.from(raw);
+}
+
 function handleAuth(ws: WebSocket, msg: SessionHostMsg): Session {
 	const { id: hostId, machineId, platform } = msg.data;
 
@@ -197,6 +225,55 @@ function relayToApp(hostWs: WebSocket, msg: HostToClientMsg) {
 		sendSessionErrorToHost(
 			hostWs,
 			`Failed to relay message to client ${clientId}`,
+		);
+	}
+}
+
+function getProxyBinaryClientId(frame: Buffer): string | null {
+	if (frame.length < PROXY_BINARY_HEADER_BYTES) {
+		return null;
+	}
+
+	if (!frame.subarray(0, 4).equals(PROXY_BINARY_MAGIC)) {
+		return null;
+	}
+
+	const clientIdLength = frame.readUInt8(6);
+	const clientIdStart = PROXY_BINARY_HEADER_BYTES;
+	const clientIdEnd = clientIdStart + clientIdLength;
+	if (clientIdLength === 0 || frame.length <= clientIdEnd) {
+		return null;
+	}
+
+	return frame.toString("utf8", clientIdStart, clientIdEnd);
+}
+
+function relayBinaryToApp(hostWs: WebSocket, frame: Buffer) {
+	const entry = getSessionForSocket(hostWs);
+	if (!entry) {
+		sendSessionErrorToHost(hostWs, "Host is not attached to a session");
+		return;
+	}
+
+	const clientId = getProxyBinaryClientId(frame);
+	if (!clientId) {
+		sendSessionErrorToHost(hostWs, "Invalid binary proxy frame");
+		return;
+	}
+
+	const clientInfo = entry.session.clients.get(clientId);
+	if (!clientInfo) {
+		sendSessionErrorToHost(hostWs, `Client ${clientId} is not connected`);
+		return;
+	}
+
+	try {
+		clientInfo.ws.send(frame, { binary: true });
+	} catch (err) {
+		logger.error("Failed to relay binary CLI frame to app", err);
+		sendSessionErrorToHost(
+			hostWs,
+			`Failed to relay binary frame to client ${clientId}`,
 		);
 	}
 }
