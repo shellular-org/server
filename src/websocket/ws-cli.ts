@@ -27,11 +27,13 @@ import {
 	closeWsWithError,
 	sendSessionErrorToClient,
 	sendSessionErrorToHost,
+	setupKeepAlive,
 } from "./shared";
 import { resolvePendingClient } from "./ws-app";
 
 export function initCliWebSocket() {
 	const wsServer = new WebSocketServer({ noServer: true });
+	setupKeepAlive(wsServer);
 	wsServer.on("connection", (ws) => {
 		/**
 		 * Session associated with this WebSocket connection.
@@ -98,6 +100,7 @@ export function initCliWebSocket() {
 					});
 				} else {
 					resolvePendingClient(
+						session.hostId,
 						parsed.data.data.clientId,
 						parsed.data.data.approved,
 					);

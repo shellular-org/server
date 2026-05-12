@@ -27,6 +27,7 @@ import {
 	type CloseCodeAndReasonValue,
 	closeWsWithError,
 	sendSessionErrorToClient,
+	setupKeepAlive,
 } from "./shared";
 
 const CLIENT_APPROVAL_TIMEOUT_MS = 60_000;
@@ -49,29 +50,34 @@ export function requestClientApprovalFromHost(
 	clientInfo: ClientInfo,
 ): Promise<CloseCodeAndReasonValue | undefined> {
 	const { clientId } = clientInfo;
+
+	// If an earlier approval is still in flight for this clientId, cancel it.
+	// Resolve the prior promise so its caller cleans up; the new connection
+	// will start its own approval below.
 	const pendingApprovalEntry = pendingApprovals.get(clientId);
 	if (pendingApprovalEntry) {
 		logger.info(
-			`Replacing pending app connection clientId=${clientId} & hostId=${session.hostId}: occupied or pending`,
+			`Superseding pending app approval for clientId=${clientId} hostId=${session.hostId} due to new connection`,
 		);
 		clearTimeout(pendingApprovalEntry.timer);
 		pendingApprovals.delete(clientId);
+		pendingApprovalEntry.resolve({
+			approved: false,
+			reason: "Superseded by newer connection",
+		});
 	}
 
+	// If there's already an active socket for this clientId, replace it. The
+	// new connection wins; the old one is closed with CLIENT_REPLACED so the
+	// previous tab/window knows it was preempted.
 	const existingClient = session.clients.get(clientId);
-	if (existingClient && pendingApprovalEntry) {
+	if (existingClient) {
 		const { code, reason } = CloseCodeAndReason.CLIENT_REPLACED;
 		logger.info(
-			`Closing existing app connection for clientId=${clientId} & hostId=${session.hostId} with code=${code} reason=${reason} to allow new connection`,
+			`Replacing existing app connection for clientId=${clientId} hostId=${session.hostId} (pendingApprovalEntry=${pendingApprovalEntry}) because a new connection was established with the same clientId`,
 		);
 		closeWsWithError(existingClient.ws, code, reason);
 		removeClient(session.id, clientId);
-	} else if (existingClient && !pendingApprovalEntry) {
-		logger.info(
-			`Rejecting new app connection for clientId=${clientId} & hostId=${session.hostId} because an active connection already exists and no pending approval was found`,
-		);
-
-		return Promise.resolve(CloseCodeAndReason.SESSION_JOIN_FAILED);
 	}
 
 	return new Promise((resolve) => {
@@ -121,22 +127,33 @@ export function requestClientApprovalFromHost(
 
 /**
  * Called by ws-cli.ts when the CLI host approves or rejects a pending client.
+ * The resolving host must own the pending approval — pendingApprovals is keyed
+ * globally by clientId, so we verify hostId to prevent one host resolving
+ * another host's pending approval.
  */
 export function resolvePendingClient(
+	hostId: string,
 	clientId: string,
 	approved: boolean,
 ): void {
-	const preUpgradeEntry = pendingApprovals.get(clientId);
-	if (!preUpgradeEntry) {
+	const pendingApproval = pendingApprovals.get(clientId);
+	if (!pendingApproval) {
 		return;
 	}
 
-	clearTimeout(preUpgradeEntry.timer);
+	if (pendingApproval.hostId !== hostId) {
+		logger.warn(
+			`Ignoring approval result from hostId=${hostId} for clientId=${clientId}: pending approval is owned by hostId=${pendingApproval.hostId}`,
+		);
+		return;
+	}
+
+	clearTimeout(pendingApproval.timer);
 	pendingApprovals.delete(clientId);
 	logger.info(
-		`Resolved app join approval for hostId=${preUpgradeEntry.hostId} clientId=${clientId} approved=${approved}`,
+		`Resolved app join approval for hostId=${pendingApproval.hostId} clientId=${clientId} approved=${approved}`,
 	);
-	preUpgradeEntry.resolve(
+	pendingApproval.resolve(
 		approved
 			? { approved: true, reason: "" }
 			: { approved: false, reason: "Connection rejected by host" },
@@ -156,6 +173,7 @@ function notifyHostPendingClient(
 
 export function initAppWebSocket() {
 	const wsServer = new WebSocketServer({ noServer: true });
+	setupKeepAlive(wsServer);
 
 	wsServer.on("connection", (ws) => {
 		logger.info("App websocket connection established");

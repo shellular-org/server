@@ -2,7 +2,6 @@ import type http from "node:http";
 import type { Duplex } from "node:stream";
 
 import { ClientInfoSchema } from "@shellular/protocol";
-import type { WebSocket, WebSocketServer } from "ws";
 import { z } from "zod";
 
 import { getClient, verifyClient } from "@/db/client";
@@ -13,8 +12,6 @@ import { getActiveSessionForHost, joinSession } from "./sessions";
 import { CloseCodeAndReason, closeWsWithError } from "./shared";
 import { initAppWebSocket, requestClientApprovalFromHost } from "./ws-app";
 import { initCliWebSocket } from "./ws-cli";
-
-const PING_INTERVAL_MS = 30_000;
 
 const HostQuerySchema = z.object({
 	hostId: z.string(),
@@ -27,9 +24,6 @@ export function initWebSocketRelay(server: http.Server) {
 	server.on("upgrade", (request, socket, head) => {
 		handleUpgradeRequest(request, socket, head);
 	});
-
-	setupKeepAlive(cliWsServer);
-	setupKeepAlive(appWsServer);
 
 	return { cliWsServer, appWsServer };
 }
@@ -147,35 +141,6 @@ async function handleUpgradeRequest(
 	// only unknown route gets hard rejected
 	socket.write("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
 	socket.destroy();
-}
-
-function setupKeepAlive(wsServer: WebSocketServer) {
-	const aliveSet = new WeakSet<WebSocket>();
-
-	wsServer.on("connection", (ws) => {
-		aliveSet.add(ws);
-
-		ws.on("pong", () => {
-			aliveSet.add(ws);
-		});
-
-		ws.on("close", () => {
-			aliveSet.delete(ws);
-		});
-	});
-
-	// Periodic ping to detect dead connections and keep connections alive
-	// through reverse proxies and load balancers
-	setInterval(() => {
-		for (const ws of wsServer.clients) {
-			if (!aliveSet.has(ws)) {
-				continue;
-			}
-
-			aliveSet.delete(ws);
-			ws.ping();
-		}
-	}, PING_INTERVAL_MS);
 }
 
 const allowedProtocols = new Set(["shellular:", "https:", "wss:"]);

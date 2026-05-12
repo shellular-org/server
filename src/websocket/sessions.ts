@@ -1,8 +1,7 @@
-import { type ClientInfo, type HostInfo, MsgType } from "@shellular/protocol";
+import type { ClientInfo, HostInfo } from "@shellular/protocol";
 import { nanoid } from "nanoid";
 import type { WebSocket } from "ws";
 
-import { sleep } from "@/utils";
 import { CloseCodeAndReason } from "./shared";
 
 export interface ClientInfoWithWebSocket {
@@ -96,7 +95,7 @@ export function getSessionForSocket(ws: WebSocket) {
 	return socketToSession.get(ws) ?? null;
 }
 
-export async function removeSocket(ws: WebSocket) {
+export function removeSocket(ws: WebSocket) {
 	const entry = socketToSession.get(ws);
 	if (!entry) {
 		return;
@@ -105,16 +104,8 @@ export async function removeSocket(ws: WebSocket) {
 	socketToSession.delete(ws);
 
 	if (entry.role === "host") {
-		// Notify all WS clients that host disconnected
+		// Close all WS clients that with host disconnected code
 		for (const [, clientInfo] of entry.session.clients) {
-			clientInfo.ws.send(
-				JSON.stringify({
-					type: MsgType.SESSION_ERROR,
-					id: `server_${nanoid(8)}`,
-					error: "Host disconnected",
-				}),
-			);
-			await sleep(250); // Give client a moment to receive message before closing
 			const { code, reason } = CloseCodeAndReason.HOST_DISCONNECTED;
 			clientInfo.ws.close(code, reason);
 			socketToSession.delete(clientInfo.ws);
