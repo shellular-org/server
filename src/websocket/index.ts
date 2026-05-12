@@ -119,16 +119,12 @@ async function handleUpgradeRequest(
 				return;
 			}
 
-			const approval = await requestClientApprovalFromHost(
-				session,
-				parsed.data,
-			);
-			if (!approval.approved) {
-				const { code, reason } = CloseCodeAndReason.APPROVAL_DENIED;
+			const failure = await requestClientApprovalFromHost(session, parsed.data);
+			if (failure) {
 				logger.info(
-					`Rejecting app websocket: approval denied for hostId=${hostId} clientId=${parsed.data.clientId} reason=${approval.reason}`,
+					`Rejecting app websocket: approval denied for hostId=${hostId} clientId=${parsed.data.clientId} reason=${failure.reason}`,
 				);
-				closeWsWithError(ws, code, reason);
+				closeWsWithError(ws, failure.code, failure.reason);
 				return;
 			}
 

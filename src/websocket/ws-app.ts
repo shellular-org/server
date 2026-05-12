@@ -16,8 +16,18 @@ import { z } from "zod";
 import { registerClient } from "@/db/client";
 import { logger } from "@/logger";
 import { type ClientToHostMsg, ClientToHostMsgSchema } from "./protocol";
-import { getSessionForSocket, removeSocket, type Session } from "./sessions";
-import { CloseCodeAndReason, sendSessionErrorToClient } from "./shared";
+import {
+	getSessionForSocket,
+	removeClient,
+	removeSocket,
+	type Session,
+} from "./sessions";
+import {
+	CloseCodeAndReason,
+	type CloseCodeAndReasonValue,
+	closeWsWithError,
+	sendSessionErrorToClient,
+} from "./shared";
 
 const CLIENT_APPROVAL_TIMEOUT_MS = 60_000;
 
@@ -26,75 +36,85 @@ type ApprovalDecision = {
 	reason: string;
 };
 
-type PreUpgradeApprovalEntry = {
+type PendingApproval = {
 	hostId: string;
 	timer: ReturnType<typeof setTimeout>;
 	resolve: (decision: ApprovalDecision) => void;
 };
 
-const pendingApprovals = new Map<string, PreUpgradeApprovalEntry>();
-
-/**
- * Returns true if the clientId is already connected or awaiting approval for
- * the given session.
- */
-export function isClientOccupied(session: Session, clientId: string): boolean {
-	const existingClient = session.clients.get(clientId);
-	if (existingClient) {
-		// User might be switching from one device to another, so we allow a new connection to take over an existing one.
-		const { code, reason } = CloseCodeAndReason.CLIENT_REPLACED;
-		existingClient.ws.close(code, reason);
-		session.clients.delete(clientId);
-	}
-	return pendingApprovals.has(clientId);
-}
+const pendingApprovals = new Map<string, PendingApproval>();
 
 export function requestClientApprovalFromHost(
 	session: Session,
 	clientInfo: ClientInfo,
-): Promise<ApprovalDecision> {
-	if (isClientOccupied(session, clientInfo.clientId)) {
+): Promise<CloseCodeAndReasonValue | undefined> {
+	const { clientId } = clientInfo;
+	const pendingApprovalEntry = pendingApprovals.get(clientId);
+	if (pendingApprovalEntry) {
 		logger.info(
-			`Denying pending app join for hostId=${session.hostId} clientId=${clientInfo.clientId}: occupied or pending`,
+			`Replacing pending app connection clientId=${clientId} & hostId=${session.hostId}: occupied or pending`,
 		);
-		return Promise.resolve({
-			approved: false,
-			reason: "Client is already connected or pending approval",
-		});
+		clearTimeout(pendingApprovalEntry.timer);
+		pendingApprovals.delete(clientId);
+	}
+
+	const existingClient = session.clients.get(clientId);
+	if (existingClient && pendingApprovalEntry) {
+		const { code, reason } = CloseCodeAndReason.CLIENT_REPLACED;
+		logger.info(
+			`Closing existing app connection for clientId=${clientId} & hostId=${session.hostId} with code=${code} reason=${reason} to allow new connection`,
+		);
+		closeWsWithError(existingClient.ws, code, reason);
+		removeClient(session.id, clientId);
+	} else if (existingClient && !pendingApprovalEntry) {
+		logger.info(
+			`Rejecting new app connection for clientId=${clientId} & hostId=${session.hostId} because an active connection already exists and no pending approval was found`,
+		);
+
+		return Promise.resolve(CloseCodeAndReason.SESSION_JOIN_FAILED);
 	}
 
 	return new Promise((resolve) => {
 		const timer = setTimeout(() => {
-			const entry = pendingApprovals.get(clientInfo.clientId);
+			const entry = pendingApprovals.get(clientId);
 			if (!entry) {
 				return;
 			}
 
-			pendingApprovals.delete(clientInfo.clientId);
+			pendingApprovals.delete(clientId);
 			logger.info(
-				`App join approval timed out for hostId=${session.hostId} clientId=${clientInfo.clientId}`,
+				`App join approval timed out for hostId=${session.hostId} clientId=${clientId}`,
 			);
-			resolve({ approved: false, reason: "Connection request timed out" });
+			resolve(CloseCodeAndReason.SESSION_JOIN_FAILED);
 		}, CLIENT_APPROVAL_TIMEOUT_MS);
 
-		pendingApprovals.set(clientInfo.clientId, {
+		pendingApprovals.set(clientId, {
 			hostId: session.hostId,
 			timer,
-			resolve,
+			resolve: (approval) => {
+				if (approval.approved) {
+					resolve(undefined);
+				} else {
+					logger.info(
+						`App join approval rejected by host for hostId=${session.hostId} clientId=${clientId} reason=${approval.reason}`,
+					);
+					resolve(CloseCodeAndReason.APPROVAL_DENIED);
+				}
+			},
 		});
 
 		try {
 			logger.info(
-				`Requesting app join approval for hostId=${session.hostId} clientId=${clientInfo.clientId}`,
+				`Requesting app join approval for hostId=${session.hostId} clientId=${clientId}`,
 			);
 			notifyHostPendingClient(session.host, clientInfo);
 		} catch {
 			clearTimeout(timer);
-			pendingApprovals.delete(clientInfo.clientId);
+			pendingApprovals.delete(clientId);
 			logger.info(
-				`Failed to notify host about app join for hostId=${session.hostId} clientId=${clientInfo.clientId}`,
+				`Failed to notify host about app join for hostId=${session.hostId} clientId=${clientId}`,
 			);
-			resolve({ approved: false, reason: "Failed to reach host" });
+			resolve(CloseCodeAndReason.APPROVAL_DENIED);
 		}
 	});
 }

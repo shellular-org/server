@@ -67,6 +67,9 @@ export const CloseCodeAndReason = {
 	HOST_AUTH_FAILED: { code: 4007, reason: "host_auth_failed" },
 } as const;
 
+export type CloseCodeAndReasonValue =
+	(typeof CloseCodeAndReason)[keyof typeof CloseCodeAndReason];
+
 export function closeWsWithError(ws: WebSocket, code: number, reason: string) {
 	// reason should stay short (<123 bytes)
 	logger.info(`Closing websocket with code=${code} reason=${reason}`);

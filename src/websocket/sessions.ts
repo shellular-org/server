@@ -70,9 +70,14 @@ export function joinSession(
 
 export function removeClient(sessionId: string, clientId: string): void {
 	const session = sessions.get(sessionId);
-	if (!session) return;
+	if (!session) {
+		return;
+	}
+
 	const clientInfo = session.clients.get(clientId);
-	if (!clientInfo) return;
+	if (!clientInfo) {
+		return;
+	}
 
 	session.clients.delete(clientId);
 	socketToSession.delete(clientInfo.ws);
@@ -112,7 +117,7 @@ export async function removeSocket(ws: WebSocket) {
 			await sleep(250); // Give client a moment to receive message before closing
 			const { code, reason } = CloseCodeAndReason.HOST_DISCONNECTED;
 			clientInfo.ws.close(code, reason);
-			socketToSession.delete(ws);
+			socketToSession.delete(clientInfo.ws);
 		}
 		entry.session.clients.clear();
 		sessions.delete(entry.session.id);
