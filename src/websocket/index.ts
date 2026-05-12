@@ -143,17 +143,18 @@ async function handleUpgradeRequest(
 	socket.destroy();
 }
 
-const allowedProtocols = new Set(["shellular:", "https:", "wss:"]);
+const APP_PROTOCOL = "shellular:";
+const WEB_PROTOCOLS = new Set(["https:", "wss:"]);
 
 function isAppOriginAllowed(origin: string): boolean {
 	try {
 		const url = new URL(origin);
 
-		if (url.protocol === "shellular:") {
+		if (url.protocol === APP_PROTOCOL) {
 			return true;
 		}
 
-		if (!allowedProtocols.has(url.protocol)) {
+		if (!WEB_PROTOCOLS.has(url.protocol)) {
 			return false;
 		}
 
