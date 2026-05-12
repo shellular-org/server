@@ -32,7 +32,7 @@ type PreUpgradeApprovalEntry = {
 	resolve: (decision: ApprovalDecision) => void;
 };
 
-const preUpgradeApprovals = new Map<string, PreUpgradeApprovalEntry>();
+const pendingApprovals = new Map<string, PreUpgradeApprovalEntry>();
 
 /**
  * Returns true if the clientId is already connected or awaiting approval for
@@ -46,7 +46,7 @@ export function isClientOccupied(session: Session, clientId: string): boolean {
 		existingClient.ws.close(code, reason);
 		session.clients.delete(clientId);
 	}
-	return preUpgradeApprovals.has(clientId);
+	return pendingApprovals.has(clientId);
 }
 
 export function requestClientApprovalFromHost(
@@ -65,19 +65,19 @@ export function requestClientApprovalFromHost(
 
 	return new Promise((resolve) => {
 		const timer = setTimeout(() => {
-			const entry = preUpgradeApprovals.get(clientInfo.clientId);
+			const entry = pendingApprovals.get(clientInfo.clientId);
 			if (!entry) {
 				return;
 			}
 
-			preUpgradeApprovals.delete(clientInfo.clientId);
+			pendingApprovals.delete(clientInfo.clientId);
 			logger.info(
 				`App join approval timed out for hostId=${session.hostId} clientId=${clientInfo.clientId}`,
 			);
 			resolve({ approved: false, reason: "Connection request timed out" });
 		}, CLIENT_APPROVAL_TIMEOUT_MS);
 
-		preUpgradeApprovals.set(clientInfo.clientId, {
+		pendingApprovals.set(clientInfo.clientId, {
 			hostId: session.hostId,
 			timer,
 			resolve,
@@ -90,7 +90,7 @@ export function requestClientApprovalFromHost(
 			notifyHostPendingClient(session.host, clientInfo);
 		} catch {
 			clearTimeout(timer);
-			preUpgradeApprovals.delete(clientInfo.clientId);
+			pendingApprovals.delete(clientInfo.clientId);
 			logger.info(
 				`Failed to notify host about app join for hostId=${session.hostId} clientId=${clientInfo.clientId}`,
 			);
@@ -106,13 +106,13 @@ export function resolvePendingClient(
 	clientId: string,
 	approved: boolean,
 ): void {
-	const preUpgradeEntry = preUpgradeApprovals.get(clientId);
+	const preUpgradeEntry = pendingApprovals.get(clientId);
 	if (!preUpgradeEntry) {
 		return;
 	}
 
 	clearTimeout(preUpgradeEntry.timer);
-	preUpgradeApprovals.delete(clientId);
+	pendingApprovals.delete(clientId);
 	logger.info(
 		`Resolved app join approval for hostId=${preUpgradeEntry.hostId} clientId=${clientId} approved=${approved}`,
 	);
@@ -212,7 +212,7 @@ export function initAppWebSocket() {
 			);
 			const entry = getSessionForSocket(ws);
 			if (entry && entry.role === "client" && entry.clientId) {
-				preUpgradeApprovals.delete(entry.clientId);
+				pendingApprovals.delete(entry.clientId);
 				// Notify CLI that client disconnected
 				const { session, clientId } = entry;
 				const activeClient = session.clients.get(clientId);
@@ -236,7 +236,7 @@ export function initAppWebSocket() {
 			logger.error("App websocket error", err);
 			const entry = getSessionForSocket(ws);
 			if (entry?.role === "client" && entry.clientId) {
-				preUpgradeApprovals.delete(entry.clientId);
+				pendingApprovals.delete(entry.clientId);
 			}
 			removeSocket(ws);
 		});

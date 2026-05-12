@@ -17,175 +17,194 @@ import { initCliWebSocket } from "./ws-cli";
 const PING_INTERVAL_MS = 30_000;
 
 const HostQuerySchema = z.object({
-  hostId: z.string(),
+	hostId: z.string(),
 });
 
 const cliWsServer = initCliWebSocket();
 const appWsServer = initAppWebSocket();
 
 export function initWebSocketRelay(server: http.Server) {
-  server.on("upgrade", (request, socket, head) => {
-    handleUpgradeRequest(request, socket, head);
-  });
+	server.on("upgrade", (request, socket, head) => {
+		handleUpgradeRequest(request, socket, head);
+	});
 
-  setupKeepAlive(cliWsServer);
-  setupKeepAlive(appWsServer);
+	setupKeepAlive(cliWsServer);
+	setupKeepAlive(appWsServer);
 
-  return { cliWsServer, appWsServer };
+	return { cliWsServer, appWsServer };
 }
 
-async function handleUpgradeRequest(request: http.IncomingMessage, socket: Duplex, head: Buffer): Promise<void> {
-  const { pathname, searchParams } = new URL(request.url || "/", "http://localhost");
+async function handleUpgradeRequest(
+	request: http.IncomingMessage,
+	socket: Duplex,
+	head: Buffer,
+): Promise<void> {
+	const { pathname, searchParams } = new URL(
+		request.url || "/",
+		"http://localhost",
+	);
 
-  logger.info(`WebSocket upgrade request received: ${pathname}`);
+	logger.info(`WebSocket upgrade request received: ${pathname}`);
 
-  const query = Object.fromEntries(searchParams.entries());
+	const query = Object.fromEntries(searchParams.entries());
 
-  if (pathname === "/cli") {
-    cliWsServer.handleUpgrade(request, socket, head, (ws) => {
-      const parsed = HostQuerySchema.safeParse(query);
-      if (!parsed.success) {
-        const { code, reason } = CloseCodeAndReason.INVALID_QUERY;
-        closeWsWithError(ws, code, reason);
-        return;
-      }
+	if (pathname === "/cli") {
+		cliWsServer.handleUpgrade(request, socket, head, (ws) => {
+			const parsed = HostQuerySchema.safeParse(query);
+			if (!parsed.success) {
+				const { code, reason } = CloseCodeAndReason.INVALID_QUERY;
+				closeWsWithError(ws, code, reason);
+				return;
+			}
 
-      const { hostId } = parsed.data;
-      if (!getHost(hostId)) {
-        const { code, reason } = CloseCodeAndReason.HOST_UNAVAILABLE;
-        closeWsWithError(ws, code, reason);
-        return;
-      }
+			const { hostId } = parsed.data;
+			if (!getHost(hostId)) {
+				const { code, reason } = CloseCodeAndReason.HOST_UNAVAILABLE;
+				closeWsWithError(ws, code, reason);
+				return;
+			}
 
-      cliWsServer.emit("connection", ws, request);
-    });
+			cliWsServer.emit("connection", ws, request);
+		});
 
-    return;
-  }
+		return;
+	}
 
-  if (pathname === "/app") {
-    const origin = request.headers.origin ?? "";
-    if (env.NODE_ENV !== "dev" && !isAppOriginAllowed(origin)) {
-      logger.warn(`Rejecting app websocket: disallowed origin: '${origin}'`);
-      socket.write("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
-      socket.destroy();
-      return;
-    }
+	if (pathname === "/app") {
+		const origin = request.headers.origin ?? "";
+		if (env.NODE_ENV !== "dev" && !isAppOriginAllowed(origin)) {
+			logger.warn(`Rejecting app websocket: disallowed origin: '${origin}'`);
+			socket.write("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
+			socket.destroy();
+			return;
+		}
 
-    // async approval before upgrade is fine
-    const parsed = ClientInfoSchema.safeParse(query);
+		// async approval before upgrade is fine
+		const parsed = ClientInfoSchema.safeParse(query);
 
-    appWsServer.handleUpgrade(request, socket, head, async (ws) => {
-      if (!parsed.success) {
-        const { code, reason } = CloseCodeAndReason.INVALID_QUERY;
-        logger.info("Rejecting app websocket: invalid query");
-        closeWsWithError(ws, code, reason);
-        return;
-      }
+		appWsServer.handleUpgrade(request, socket, head, async (ws) => {
+			if (!parsed.success) {
+				const { code, reason } = CloseCodeAndReason.INVALID_QUERY;
+				logger.info("Rejecting app websocket: invalid query");
+				closeWsWithError(ws, code, reason);
+				return;
+			}
 
-      const { hostId } = parsed.data;
-      const host = getHost(hostId);
-      if (!host) {
-        logger.info(`Rejecting app websocket: host ${hostId} doesn't exist`);
-        const { code, reason } = CloseCodeAndReason.HOST_UNAVAILABLE;
-        closeWsWithError(ws, code, reason);
-        return;
-      }
+			const { hostId } = parsed.data;
+			const host = getHost(hostId);
+			if (!host) {
+				logger.info(`Rejecting app websocket: host ${hostId} doesn't exist`);
+				const { code, reason } = CloseCodeAndReason.HOST_UNAVAILABLE;
+				closeWsWithError(ws, code, reason);
+				return;
+			}
 
-      const existingClient = getClient(parsed.data.clientId);
-      if (existingClient && !verifyClient(parsed.data)) {
-        logger.info(`Rejecting app websocket: client verification failed for clientId=${parsed.data.clientId}`);
-        const { code, reason } = CloseCodeAndReason.INVALID_QUERY;
-        closeWsWithError(ws, code, reason);
-        return;
-      }
+			const existingClient = getClient(parsed.data.clientId);
+			if (existingClient && !verifyClient(parsed.data)) {
+				logger.info(
+					`Rejecting app websocket: client verification failed for clientId=${parsed.data.clientId}`,
+				);
+				const { code, reason } = CloseCodeAndReason.INVALID_QUERY;
+				closeWsWithError(ws, code, reason);
+				return;
+			}
 
-      const session = getActiveSessionForHost(hostId);
-      if (!session) {
-        const { code, reason } = CloseCodeAndReason.HOST_UNAVAILABLE;
-        logger.info(`Rejecting app websocket: no active session for hostId=${hostId}`);
-        closeWsWithError(ws, code, reason);
-        return;
-      }
+			const session = getActiveSessionForHost(hostId);
+			if (!session) {
+				const { code, reason } = CloseCodeAndReason.HOST_UNAVAILABLE;
+				logger.info(
+					`Rejecting app websocket: no active session for hostId=${hostId}`,
+				);
+				closeWsWithError(ws, code, reason);
+				return;
+			}
 
-      const approval = await requestClientApprovalFromHost(session, parsed.data);
-      if (!approval.approved) {
-        const { code, reason } = CloseCodeAndReason.APPROVAL_DENIED;
-        logger.info(
-          `Rejecting app websocket: approval denied for hostId=${hostId} clientId=${parsed.data.clientId} reason=${approval.reason}`,
-        );
-        closeWsWithError(ws, code, reason);
-        return;
-      }
+			const approval = await requestClientApprovalFromHost(
+				session,
+				parsed.data,
+			);
+			if (!approval.approved) {
+				const { code, reason } = CloseCodeAndReason.APPROVAL_DENIED;
+				logger.info(
+					`Rejecting app websocket: approval denied for hostId=${hostId} clientId=${parsed.data.clientId} reason=${approval.reason}`,
+				);
+				closeWsWithError(ws, code, reason);
+				return;
+			}
 
-      const joined = joinSession(session.id, ws, parsed.data);
-      if (!joined) {
-        const { code, reason } = CloseCodeAndReason.SESSION_JOIN_FAILED;
-        logger.info(`Rejecting app websocket: join failed for hostId=${hostId} clientId=${parsed.data.clientId}`);
-        closeWsWithError(ws, code, reason);
-        return;
-      }
+			const joined = joinSession(session.id, ws, parsed.data);
+			if (!joined) {
+				const { code, reason } = CloseCodeAndReason.SESSION_JOIN_FAILED;
+				logger.info(
+					`Rejecting app websocket: join failed for hostId=${hostId} clientId=${parsed.data.clientId}`,
+				);
+				closeWsWithError(ws, code, reason);
+				return;
+			}
 
-      appWsServer.emit("connection", ws, request);
-    });
+			appWsServer.emit("connection", ws, request);
+		});
 
-    return;
-  }
+		return;
+	}
 
-  // only unknown route gets hard rejected
-  socket.write("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
-  socket.destroy();
+	// only unknown route gets hard rejected
+	socket.write("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
+	socket.destroy();
 }
 
 function setupKeepAlive(wsServer: WebSocketServer) {
-  const aliveSet = new WeakSet<WebSocket>();
+	const aliveSet = new WeakSet<WebSocket>();
 
-  wsServer.on("connection", (ws) => {
-    aliveSet.add(ws);
+	wsServer.on("connection", (ws) => {
+		aliveSet.add(ws);
 
-    ws.on("pong", () => {
-      aliveSet.add(ws);
-    });
+		ws.on("pong", () => {
+			aliveSet.add(ws);
+		});
 
-    ws.on("close", () => {
-      aliveSet.delete(ws);
-    });
-  });
+		ws.on("close", () => {
+			aliveSet.delete(ws);
+		});
+	});
 
-  // Periodic ping to detect dead connections and keep connections alive
-  // through reverse proxies and load balancers
-  setInterval(() => {
-    for (const ws of wsServer.clients) {
-      if (!aliveSet.has(ws)) {
-        continue;
-      }
+	// Periodic ping to detect dead connections and keep connections alive
+	// through reverse proxies and load balancers
+	setInterval(() => {
+		for (const ws of wsServer.clients) {
+			if (!aliveSet.has(ws)) {
+				continue;
+			}
 
-      aliveSet.delete(ws);
-      ws.ping();
-    }
-  }, PING_INTERVAL_MS);
+			aliveSet.delete(ws);
+			ws.ping();
+		}
+	}, PING_INTERVAL_MS);
 }
 
 const allowedProtocols = new Set(["shellular:", "https:", "wss:"]);
 
 function isAppOriginAllowed(origin: string): boolean {
-  try {
-    const url = new URL(origin);
+	try {
+		const url = new URL(origin);
 
-    if (url.protocol === "shellular:") {
-      return true;
-    }
+		if (url.protocol === "shellular:") {
+			return true;
+		}
 
-    if (!allowedProtocols.has(url.protocol)) {
-      return false;
-    }
+		if (!allowedProtocols.has(url.protocol)) {
+			return false;
+		}
 
-    if (url.hostname === "shellular.dev" || url.hostname.endsWith(".shellular.dev")) {
-      return true;
-    }
+		if (
+			url.hostname === "shellular.dev" ||
+			url.hostname.endsWith(".shellular.dev")
+		) {
+			return true;
+		}
 
-    return false;
-  } catch {
-    return false;
-  }
+		return false;
+	} catch {
+		return false;
+	}
 }
