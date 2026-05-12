@@ -33,7 +33,8 @@ import { resolvePendingClient } from "./ws-app";
 
 export function initCliWebSocket() {
 	const wsServer = new WebSocketServer({ noServer: true });
-	setupKeepAlive(wsServer);
+	setupKeepAlive(wsServer, "host");
+
 	wsServer.on("connection", (ws) => {
 		/**
 		 * Session associated with this WebSocket connection.

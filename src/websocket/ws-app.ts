@@ -173,7 +173,7 @@ function notifyHostPendingClient(
 
 export function initAppWebSocket() {
 	const wsServer = new WebSocketServer({ noServer: true });
-	setupKeepAlive(wsServer);
+	setupKeepAlive(wsServer, "client");
 
 	wsServer.on("connection", (ws) => {
 		logger.info("App websocket connection established");

@@ -85,7 +85,10 @@ export function closeWsWithError(ws: WebSocket, code: number, reason: string) {
  * cycles is terminated so its session is freed for reconnect.
  *
  */
-export function setupKeepAlive(wsServer: WebSocketServer): void {
+export function setupKeepAlive(
+	wsServer: WebSocketServer,
+	type: "host" | "client",
+): void {
 	const aliveSet = new WeakSet<WebSocket>();
 
 	wsServer.on("connection", (ws) => {
@@ -103,7 +106,7 @@ export function setupKeepAlive(wsServer: WebSocketServer): void {
 	const interval = setInterval(() => {
 		for (const ws of wsServer.clients) {
 			if (!aliveSet.has(ws)) {
-				logger.info("Terminating unresponsive websocket (missed pong)");
+				logger.info(`Terminating unresponsive ${type} websocket (missed pong)`);
 				removeSocket(ws);
 				ws.terminate();
 				continue;
