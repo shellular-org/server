@@ -212,6 +212,7 @@ export function initAppWebSocket() {
 			);
 			const entry = getSessionForSocket(ws);
 			if (entry && entry.role === "client" && entry.clientId) {
+				preUpgradeApprovals.delete(entry.clientId);
 				// Notify CLI that client disconnected
 				const { session, clientId } = entry;
 				const activeClient = session.clients.get(clientId);
@@ -233,6 +234,10 @@ export function initAppWebSocket() {
 
 		ws.on("error", (err) => {
 			logger.error("App websocket error", err);
+			const entry = getSessionForSocket(ws);
+			if (entry?.role === "client" && entry.clientId) {
+				preUpgradeApprovals.delete(entry.clientId);
+			}
 			removeSocket(ws);
 		});
 	});
