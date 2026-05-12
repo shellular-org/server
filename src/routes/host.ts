@@ -3,6 +3,7 @@ import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
 
 import { registerHost } from "@/db/host";
+import { env } from "@/env";
 import { ForbiddenError, TooManyRequestsError } from "@/error/http";
 import { logger } from "@/logger";
 import { userAgentFilter } from "@/middleware/user-agent-filter";
@@ -28,7 +29,7 @@ const registerLimiter = rateLimit({
 		);
 
 		throw new TooManyRequestsError(
-			"Too many requests, please try again later.",
+			`Too many requests, please try again later. If you think this is a mistake, please contact support at ${env.CONTACT_EMAIL}`,
 		);
 	},
 });
