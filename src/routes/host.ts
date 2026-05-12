@@ -48,9 +48,8 @@ const HostRegisterReqSchema = z.object({
 	]),
 });
 
-// keeping /register for backwards compatibility. will remove it in a week.
 router.post(
-	["/register", "/host/register"],
+	"/host/register",
 	userAgentFilter([/^shellular\/\d+\.\d+\.\d+$/]),
 	registerLimiter,
 	(req, res) => {
