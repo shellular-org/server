@@ -2,18 +2,16 @@ import type http from "node:http";
 import type { Duplex } from "node:stream";
 
 import { ClientInfoSchema } from "@shellular/protocol";
-import type { WebSocket, WebSocketServer } from "ws";
 import { z } from "zod";
 
 import { getClient, verifyClient } from "@/db/client";
 import { getHost } from "@/db/host";
+import { env } from "@/env";
 import { logger } from "@/logger";
 import { getActiveSessionForHost, joinSession } from "./sessions";
 import { CloseCodeAndReason, closeWsWithError } from "./shared";
 import { initAppWebSocket, requestClientApprovalFromHost } from "./ws-app";
 import { initCliWebSocket } from "./ws-cli";
-
-const PING_INTERVAL_MS = 30_000;
 
 const HostQuerySchema = z.object({
 	hostId: z.string(),
@@ -26,9 +24,6 @@ export function initWebSocketRelay(server: http.Server) {
 	server.on("upgrade", (request, socket, head) => {
 		handleUpgradeRequest(request, socket, head);
 	});
-
-	setupKeepAlive(cliWsServer);
-	setupKeepAlive(appWsServer);
 
 	return { cliWsServer, appWsServer };
 }
@@ -70,6 +65,14 @@ async function handleUpgradeRequest(
 	}
 
 	if (pathname === "/app") {
+		const origin = request.headers.origin ?? "";
+		if (env.NODE_ENV !== "dev" && !isAppOriginAllowed(origin)) {
+			logger.warn(`Rejecting app websocket: disallowed origin: '${origin}'`);
+			socket.write("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
+			socket.destroy();
+			return;
+		}
+
 		// async approval before upgrade is fine
 		const parsed = ClientInfoSchema.safeParse(query);
 
@@ -110,16 +113,12 @@ async function handleUpgradeRequest(
 				return;
 			}
 
-			const approval = await requestClientApprovalFromHost(
-				session,
-				parsed.data,
-			);
-			if (!approval.approved) {
-				const { code, reason } = CloseCodeAndReason.APPROVAL_DENIED;
+			const failure = await requestClientApprovalFromHost(session, parsed.data);
+			if (failure) {
 				logger.info(
-					`Rejecting app websocket: approval denied for hostId=${hostId} clientId=${parsed.data.clientId} reason=${approval.reason}`,
+					`Rejecting app websocket: approval denied for hostId=${hostId} clientId=${parsed.data.clientId} reason=${failure.reason}`,
 				);
-				closeWsWithError(ws, code, reason);
+				closeWsWithError(ws, failure.code, failure.reason);
 				return;
 			}
 
@@ -144,31 +143,30 @@ async function handleUpgradeRequest(
 	socket.destroy();
 }
 
-function setupKeepAlive(wsServer: WebSocketServer) {
-	const aliveSet = new WeakSet<WebSocket>();
+const APP_PROTOCOL = "shellular:";
+const WEB_PROTOCOLS = new Set(["https:", "wss:"]);
 
-	wsServer.on("connection", (ws) => {
-		aliveSet.add(ws);
+function isAppOriginAllowed(origin: string): boolean {
+	try {
+		const url = new URL(origin);
 
-		ws.on("pong", () => {
-			aliveSet.add(ws);
-		});
-
-		ws.on("close", () => {
-			aliveSet.delete(ws);
-		});
-	});
-
-	// Periodic ping to detect dead connections and keep connections alive
-	// through reverse proxies and load balancers
-	setInterval(() => {
-		for (const ws of wsServer.clients) {
-			if (!aliveSet.has(ws)) {
-				continue;
-			}
-
-			aliveSet.delete(ws);
-			ws.ping();
+		if (url.protocol === APP_PROTOCOL) {
+			return true;
 		}
-	}, PING_INTERVAL_MS);
+
+		if (!WEB_PROTOCOLS.has(url.protocol)) {
+			return false;
+		}
+
+		if (
+			url.hostname === "shellular.dev" ||
+			url.hostname.endsWith(".shellular.dev")
+		) {
+			return true;
+		}
+
+		return false;
+	} catch {
+		return false;
+	}
 }

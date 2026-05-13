@@ -1,9 +1,12 @@
 import { MsgType, type SessionErrorMsg } from "@shellular/protocol";
 import { nanoid } from "nanoid";
-import type { WebSocket } from "ws";
+import type { WebSocket, WebSocketServer } from "ws";
 
 import { env } from "@/env";
 import { logger } from "@/logger";
+import { removeSocket } from "./sessions";
+
+const PING_INTERVAL_MS = 30_000;
 
 function sendSessionErrorMsg(
 	ws: WebSocket,
@@ -67,8 +70,54 @@ export const CloseCodeAndReason = {
 	HOST_AUTH_FAILED: { code: 4007, reason: "host_auth_failed" },
 } as const;
 
+export type CloseCodeAndReasonValue =
+	(typeof CloseCodeAndReason)[keyof typeof CloseCodeAndReason];
+
 export function closeWsWithError(ws: WebSocket, code: number, reason: string) {
 	// reason should stay short (<123 bytes)
 	logger.info(`Closing websocket with code=${code} reason=${reason}`);
 	ws.close(code, reason.slice(0, 123));
+}
+
+/**
+ * Periodic ping to detect dead connections and keep connections alive through
+ * reverse proxies and load balancers. A socket that misses a pong between two
+ * cycles is terminated so its session is freed for reconnect.
+ *
+ */
+export function setupKeepAlive(
+	wsServer: WebSocketServer,
+	type: "host" | "client",
+): void {
+	const aliveSet = new WeakSet<WebSocket>();
+
+	wsServer.on("connection", (ws) => {
+		aliveSet.add(ws);
+
+		ws.on("pong", () => {
+			aliveSet.add(ws);
+		});
+
+		ws.on("close", () => {
+			aliveSet.delete(ws);
+		});
+	});
+
+	const interval = setInterval(() => {
+		for (const ws of wsServer.clients) {
+			if (!aliveSet.has(ws)) {
+				logger.info(`Terminating unresponsive ${type} websocket (missed pong)`);
+				removeSocket(ws);
+				ws.terminate();
+				continue;
+			}
+
+			aliveSet.delete(ws);
+			ws.ping();
+		}
+	}, PING_INTERVAL_MS);
+
+	wsServer.on("close", () => {
+		clearInterval(interval);
+	});
 }
