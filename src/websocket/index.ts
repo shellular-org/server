@@ -147,8 +147,6 @@ const APP_PROTOCOL = "shellular:";
 const WEB_PROTOCOLS = new Set(["https:", "wss:"]);
 
 function isAppOriginAllowed(origin: string): boolean {
-	if (env.NODE_ENV === "dev") return true;
-
 	try {
 		const url = new URL(origin);
 
