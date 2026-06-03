@@ -190,7 +190,9 @@ function handleAuth(ws: WebSocket, msg: SessionHostMsg): Session {
 
 	const existing = getActiveSessionForHost(hostId);
 	if (existing) {
-		throw new Error("Host already has an active connection");
+		throw new Error(
+			`Host already has an active connection (hostId: ${hostId})`,
+		);
 	}
 
 	const session = createSession(hostId, ws, msg.data);

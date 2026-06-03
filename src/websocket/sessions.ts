@@ -23,8 +23,17 @@ export interface Session {
 	clients: Map<string, ClientInfoWithWebSocket>;
 }
 
+type ConnectionTracker = {
+	hosts: Set<string>;
+	clients: Set<string>;
+};
+
 const sessions = new Map<string, Session>();
 const socketToSession = new WeakMap<WebSocket, SocketInfo>();
+const connections: ConnectionTracker = {
+	hosts: new Set(),
+	clients: new Set(),
+};
 
 export function createSession(
 	hostId: string,
@@ -39,6 +48,7 @@ export function createSession(
 		clients: new Map(),
 	};
 	sessions.set(session.id, session);
+	connections.hosts.add(hostId);
 	socketToSession.set(host, { session, role: "host" });
 	return session;
 }
@@ -58,6 +68,7 @@ export function joinSession(
 		info: clientInfo,
 	};
 
+	connections.clients.add(clientInfo.clientId);
 	session.clients.set(clientInfo.clientId, clientInfoWithWs);
 	socketToSession.set(clientWs, {
 		session,
@@ -80,6 +91,7 @@ export function removeClient(sessionId: string, clientId: string): void {
 
 	session.clients.delete(clientId);
 	socketToSession.delete(clientInfo.ws);
+	connections.clients.delete(clientId);
 }
 
 export function getActiveSessionForHost(hostId: string): Session | null {
@@ -88,7 +100,15 @@ export function getActiveSessionForHost(hostId: string): Session | null {
 			return session;
 		}
 	}
+
 	return null;
+}
+
+export function getSessionStats() {
+	return {
+		hosts: connections.hosts.size,
+		clients: connections.clients.size,
+	};
 }
 
 export function getSessionForSocket(ws: WebSocket) {
@@ -105,10 +125,12 @@ export function removeSocket(ws: WebSocket) {
 
 	if (entry.role === "host") {
 		// Close all WS clients that with host disconnected code
+		connections.hosts.delete(entry.session.hostId);
 		for (const [, clientInfo] of entry.session.clients) {
 			const { code, reason } = CloseCodeAndReason.HOST_DISCONNECTED;
 			clientInfo.ws.close(code, reason);
 			socketToSession.delete(clientInfo.ws);
+			connections.clients.delete(clientInfo.info.clientId);
 		}
 		entry.session.clients.clear();
 		sessions.delete(entry.session.id);
@@ -117,6 +139,7 @@ export function removeSocket(ws: WebSocket) {
 		const clientInfo = entry.session.clients.get(entry.clientId);
 		if (clientInfo && clientInfo.ws === ws) {
 			entry.session.clients.delete(entry.clientId);
+			connections.clients.delete(entry.clientId);
 		}
 	}
 }

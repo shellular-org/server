@@ -10,6 +10,7 @@ import cors from "@/middleware/cors";
 import { router as hostRouter } from "@/routes/host";
 import { printRoutes } from "@/utils/express";
 import { initWebSocketRelay } from "@/websocket/index";
+import { getSessionStats } from "@/websocket/sessions";
 
 process.on("uncaughtException", (err) => {
 	logger.error("Uncaught exception:", err);
@@ -59,6 +60,10 @@ app.use((req, res, next) => {
 
 app.get("/health", (_req, res) => {
 	res.json({ message: "OK" });
+});
+
+app.get("/stats", (_req, res) => {
+	return res.json(getSessionStats());
 });
 
 app.use(
