@@ -29,6 +29,7 @@ type ConnectionTracker = {
 };
 
 const sessions = new Map<string, Session>();
+const sessionsByHostId = new Map<string, Session>();
 const socketToSession = new WeakMap<WebSocket, SocketInfo>();
 const connections: ConnectionTracker = {
 	hosts: new Set(),
@@ -48,6 +49,7 @@ export function createSession(
 		clients: new Map(),
 	};
 	sessions.set(session.id, session);
+	sessionsByHostId.set(hostId, session);
 	connections.hosts.add(hostId);
 	socketToSession.set(host, { session, role: "host" });
 	return session;
@@ -95,13 +97,7 @@ export function removeClient(sessionId: string, clientId: string): void {
 }
 
 export function getActiveSessionForHost(hostId: string): Session | null {
-	for (const session of sessions.values()) {
-		if (session.hostId === hostId) {
-			return session;
-		}
-	}
-
-	return null;
+	return sessionsByHostId.get(hostId) ?? null;
 }
 
 export function getSessionStats() {
@@ -134,6 +130,7 @@ export function removeSocket(ws: WebSocket) {
 		}
 		entry.session.clients.clear();
 		sessions.delete(entry.session.id);
+		sessionsByHostId.delete(entry.session.hostId);
 	} else if (entry.role === "client") {
 		// Client disconnected
 		const clientInfo = entry.session.clients.get(entry.clientId);
