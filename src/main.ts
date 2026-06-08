@@ -66,6 +66,16 @@ app.get("/stats", (_req, res) => {
 	return res.json(getSessionStats());
 });
 
+app.get("/", (_req, res) => {
+	// Only send friendly message if request came directly to "/"
+	// (not matched by any other route)
+	res.json({
+		success: true,
+		message:
+			"Welcome to Shellular. Visit https://shellular.dev to download the app and get started.",
+	});
+});
+
 app.use(
 	(
 		err: Error,
@@ -91,6 +101,14 @@ app.use(
 		res.status(500).json({ error: "Internal server error" });
 	},
 );
+
+// Catch-all handler for non-existent routes (must be last)
+app.use((_req, res) => {
+	res.status(404).json({
+		success: false,
+		message: "Not found",
+	});
+});
 
 const server = createServer(app);
 initWebSocketRelay(server);
