@@ -1,4 +1,9 @@
-import type { ClientInfo, HostInfo } from "@shellular/protocol";
+import {
+	type ClientInfo,
+	type HostInfo,
+	MsgType,
+	type SessionClientLeftMsg,
+} from "@shellular/protocol";
 import { nanoid } from "nanoid";
 import type { WebSocket } from "ws";
 
@@ -137,6 +142,18 @@ export function removeSocket(ws: WebSocket) {
 		if (clientInfo && clientInfo.ws === ws) {
 			entry.session.clients.delete(entry.clientId);
 			connections.clients.delete(entry.clientId);
+
+			// Notify host/CLI that client disconnected
+			const respMsg: SessionClientLeftMsg = {
+				type: MsgType.SESSION_CLIENT_LEFT,
+				data: { clientId: entry.clientId },
+			};
+			entry.session.host.send(
+				JSON.stringify({
+					id: `server_${nanoid(8)}`,
+					...respMsg,
+				}),
+			);
 		}
 	}
 }

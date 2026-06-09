@@ -6,7 +6,6 @@ import {
 	parseMessage,
 	type SessionClientJoinedMsg,
 	type SessionClientJoinMsg,
-	type SessionClientLeftMsg,
 	type SessionJoinedMsg,
 } from "@shellular/protocol";
 import { nanoid } from "nanoid";
@@ -178,7 +177,7 @@ export function initAppWebSocket() {
 	wsServer.on("connection", (ws) => {
 		logger.info("App websocket connection established");
 		const entry = getSessionForSocket(ws);
-		if (!entry || entry.role !== "client") {
+		if (entry?.role !== "client") {
 			logger.info("Closing app websocket: missing or invalid session role");
 			sendSessionErrorToClient(
 				ws,
@@ -251,21 +250,6 @@ export function initAppWebSocket() {
 			const entry = getSessionForSocket(ws);
 			if (entry && entry.role === "client" && entry.clientId) {
 				pendingApprovals.delete(entry.clientId);
-				// Notify CLI that client disconnected
-				const { session, clientId } = entry;
-				const activeClient = session.clients.get(clientId);
-				if (session.host && activeClient?.ws === ws) {
-					const respMsg: SessionClientLeftMsg = {
-						type: MsgType.SESSION_CLIENT_LEFT,
-						data: { clientId },
-					};
-					session.host.send(
-						JSON.stringify({
-							id: `server_${nanoid(8)}`,
-							...respMsg,
-						}),
-					);
-				}
 			}
 			removeSocket(ws);
 		});
