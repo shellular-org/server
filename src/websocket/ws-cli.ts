@@ -70,12 +70,12 @@ export function initCliWebSocket() {
 			const parsedBaseMsg = parsedBase.data;
 
 			if (parsedBaseMsg.type === MsgType.PING) {
-				const pongId = `server_${nanoid(8)}`;
-				const respMsg: PongMsg = {
+				const respPongMsg: PongMsg = {
+					id: `server_${nanoid(8)}`,
 					type: MsgType.PONG,
 					respTo: parsedBaseMsg.id,
 				};
-				ws.send(JSON.stringify({ id: pongId, ...respMsg }));
+				ws.send(JSON.stringify(respPongMsg));
 				return;
 			}
 

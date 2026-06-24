@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@shellular/protocol':
-        specifier: ^0.0.12
-        version: 0.0.12
+        specifier: ^0.0.21
+        version: 0.0.21
       better-sqlite3:
         specifier: ^12.10.0
         version: 12.10.0
@@ -58,8 +58,8 @@ importers:
 
 packages:
 
-  '@agentclientprotocol/sdk@0.22.1':
-    resolution: {integrity: sha512-DfqXtl/8gO9NImq094MTaCXEU2vkhh6v7q/kT+9UjZxUqj8hYaya2OjLVIqn16MzNHcXEpShTR2RIauLSYeDQQ==}
+  '@agentclientprotocol/sdk@0.26.0':
+    resolution: {integrity: sha512-ialrcI+RzKOYe+fw+TfpyTdRmEoqIkXLlwbTi6XgaXXfdhNcdod7TmE1VsTnG3yTlox8TMTSMQgWbLLbz3r86Q==}
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
 
@@ -276,8 +276,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@shellular/protocol@0.0.12':
-    resolution: {integrity: sha512-RKwdjk0vjSF3vCS6QEpRnHp9T9lKZsgjCeppvpZHl+80h1uG1/ukzY25w9oEjtshiFi4oOYvD9HsRLyWOgve3Q==}
+  '@shellular/protocol@0.0.21':
+    resolution: {integrity: sha512-qmOBd4QbQo6U4GQ4DhH+ksVRbOPk7bTmjfA5epKp8vvNUW8Mj7Apln6vUgfvQE7gC1Igdl/Rh2vHpKJdTzfDow==}
 
   '@types/better-sqlite3@7.6.13':
     resolution: {integrity: sha512-NMv9ASNARoKksWtsq/SHakpYAYnhBrQgGD8zkLYk/jaK8jUGn08CfEdTRgYhMypUQAfzSP8W6gNLe0q19/t4VA==}
@@ -763,7 +763,7 @@ packages:
 
 snapshots:
 
-  '@agentclientprotocol/sdk@0.22.1(zod@4.3.6)':
+  '@agentclientprotocol/sdk@0.26.0(zod@4.3.6)':
     dependencies:
       zod: 4.3.6
 
@@ -880,9 +880,9 @@ snapshots:
   '@esbuild/win32-x64@0.27.7':
     optional: true
 
-  '@shellular/protocol@0.0.12':
+  '@shellular/protocol@0.0.21':
     dependencies:
-      '@agentclientprotocol/sdk': 0.22.1(zod@4.3.6)
+      '@agentclientprotocol/sdk': 0.26.0(zod@4.3.6)
       zod: 4.3.6
 
   '@types/better-sqlite3@7.6.13':

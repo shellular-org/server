@@ -218,10 +218,11 @@ export function initAppWebSocket() {
 
 			if (parsedBaseMsg.type === MsgType.PING) {
 				const pongMsg: PongMsg = {
+					id: `server_${nanoid(8)}`,
 					type: MsgType.PONG,
 					respTo: parsedBaseMsg.id,
 				};
-				ws.send(JSON.stringify({ id: `server_${nanoid(8)}`, ...pongMsg }));
+				ws.send(JSON.stringify(pongMsg));
 				return;
 			}
 
