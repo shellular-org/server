@@ -29,6 +29,10 @@ Server listens on `0.0.0.0:3000` by default.
 pnpm start
 ```
 
+## OAuth Login
+
+See [docs/oauth-flow.md](docs/oauth-flow.md) for provider setup, token lifecycle, and the app/WebSocket authentication flow.
+
 ## License
 
 AGPL-3.0-only

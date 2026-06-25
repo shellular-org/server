@@ -4,6 +4,7 @@ import type { Duplex } from "node:stream";
 import { ClientInfoSchema } from "@shellular/protocol";
 import { z } from "zod";
 
+import { validateAccessToken } from "@/auth/store";
 import { getClient, verifyClient } from "@/db/client";
 import { getHost } from "@/db/host";
 import { env } from "@/env";
@@ -15,6 +16,10 @@ import { initCliWebSocket } from "./ws-cli";
 
 const HostQuerySchema = z.object({
 	hostId: z.string(),
+});
+
+const AppAuthQuerySchema = z.object({
+	authToken: z.string().min(1),
 });
 
 const cliWsServer = initCliWebSocket();
@@ -68,6 +73,17 @@ async function handleUpgradeRequest(
 		const origin = request.headers.origin ?? "";
 		if (env.NODE_ENV !== "dev" && !isAppOriginAllowed(origin)) {
 			logger.warn(`Rejecting app websocket: disallowed origin: '${origin}'`);
+			socket.write("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
+			socket.destroy();
+			return;
+		}
+
+		const authParsed = AppAuthQuerySchema.safeParse(query);
+		if (
+			!authParsed.success ||
+			!validateAccessToken(authParsed.data.authToken)
+		) {
+			logger.warn("Rejecting app websocket: missing or invalid auth token");
 			socket.write("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
 			socket.destroy();
 			return;

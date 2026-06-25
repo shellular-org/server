@@ -7,6 +7,7 @@ import { env } from "@/env";
 import { HttpError } from "@/error/http";
 import { logger } from "@/logger";
 import cors from "@/middleware/cors";
+import { router as authRouter } from "@/routes/auth";
 import { router as hostRouter } from "@/routes/host";
 import { printRoutes } from "@/utils/express";
 import { initWebSocketRelay } from "@/websocket/index";
@@ -29,6 +30,7 @@ app.set("trust proxy", 1); // trust first proxy (if behind a proxy like nginx or
 app.use(cors);
 app.use(express.json());
 
+app.use(authRouter);
 app.use(hostRouter);
 
 app.use((req, res, next) => {

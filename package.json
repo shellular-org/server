@@ -15,6 +15,8 @@
 	"type": "commonjs",
 	"dependencies": {
 		"@shellular/protocol": "^0.0.12",
+		"@oslojs/encoding": "^1.1.0",
+		"arctic": "^3.7.0",
 		"better-sqlite3": "^12.10.0",
 		"dotenv": "^17.4.1",
 		"express": "^5.2.1",
