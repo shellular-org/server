@@ -9,6 +9,7 @@ const envSchema = z.object({
 	CORS_ORIGIN: z.string().min(1).default("*"),
 	NODE_ENV: z.enum(["dev", "prod"]),
 	CONTACT_EMAIL: z.email().default("team@shellular.dev"),
+	WS_TOKEN_SECRET: z.string().min(32),
 	AUTH_PUBLIC_BASE_URL: z.url().default("https://api.shellular.dev"),
 	AUTH_APP_CALLBACK_URL: z.string().default("shellular://auth-callback"),
 	GOOGLE_CLIENT_ID: z.string().optional(),
@@ -18,7 +19,6 @@ const envSchema = z.object({
 	APPLE_CLIENT_ID: z.string().optional(),
 	APPLE_TEAM_ID: z.string().optional(),
 	APPLE_KEY_ID: z.string().optional(),
-	APPLE_PRIVATE_KEY: z.string().optional(),
 });
 
 export const env = envSchema.parse(process.env);

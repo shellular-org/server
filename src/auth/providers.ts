@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import * as arctic from "arctic";
 
 import { env } from "@/env";
@@ -11,6 +13,7 @@ import {
 } from "./store";
 
 const PROVIDERS = ["google", "github", "apple"] as const;
+const APPLE_PRIVATE_KEY_FILE = "apple_key.p8";
 
 type ProviderStatus = {
 	id: AuthProvider;
@@ -40,7 +43,7 @@ export function isProviderEnabled(provider: AuthProvider): boolean {
 				env.APPLE_CLIENT_ID &&
 					env.APPLE_TEAM_ID &&
 					env.APPLE_KEY_ID &&
-					env.APPLE_PRIVATE_KEY,
+					hasApplePrivateKey(),
 			);
 	}
 }
@@ -224,7 +227,7 @@ function getApple() {
 		required(env.APPLE_CLIENT_ID, "APPLE_CLIENT_ID"),
 		required(env.APPLE_TEAM_ID, "APPLE_TEAM_ID"),
 		required(env.APPLE_KEY_ID, "APPLE_KEY_ID"),
-		parseApplePrivateKey(required(env.APPLE_PRIVATE_KEY, "APPLE_PRIVATE_KEY")),
+		parseApplePrivateKey(getApplePrivateKey()),
 		callbackUrl("apple"),
 	);
 }
@@ -245,6 +248,22 @@ function ensureProviderEnabled(provider: AuthProvider): void {
 function required(value: string | undefined, name: string): string {
 	if (!value) throw new Error(`Missing ${name}`);
 	return value;
+}
+
+function getApplePrivateKey(): string {
+	const path = applePrivateKeyFilePath();
+	if (!existsSync(path)) {
+		throw new Error(`Apple private key file not found: ${path}`);
+	}
+	return readFileSync(path, "utf8");
+}
+
+function hasApplePrivateKey(): boolean {
+	return existsSync(applePrivateKeyFilePath());
+}
+
+function applePrivateKeyFilePath(): string {
+	return resolve(__dirname, "..", "..", APPLE_PRIVATE_KEY_FILE);
 }
 
 function parseApplePrivateKey(value: string): Uint8Array {

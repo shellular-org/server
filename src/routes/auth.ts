@@ -1,3 +1,4 @@
+import { ClientInfoSchema } from "@shellular/protocol";
 import express, { Router } from "express";
 import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
@@ -23,6 +24,13 @@ import {
 	upsertUserFromProvider,
 	validateAccessToken,
 } from "@/auth/store";
+import {
+	APP_WEBSOCKET_TOKEN_TTL_SECONDS,
+	createAppWebSocketToken,
+} from "@/auth/ws-ticket";
+import { getClient, verifyClient } from "@/db/client";
+import { getHost } from "@/db/host";
+import { listUserConnectionHistory } from "@/db/user-history";
 import { env } from "@/env";
 import { BadRequestError, ConflictError, ForbiddenError } from "@/error/http";
 
@@ -143,6 +151,36 @@ router.post("/auth/refresh", authLimiter, (req, res) => {
 router.get("/auth/me", (req, res) => {
 	const user = requireAuthUser(req);
 	res.json({ success: true, data: { user } });
+});
+
+router.get("/auth/history", (req, res) => {
+	const user = requireAuthUser(req);
+	res.json({
+		success: true,
+		data: { history: listUserConnectionHistory(user.id) },
+	});
+});
+
+router.post("/auth/ws-token", (req, res) => {
+	const user = requireAuthUser(req);
+	const clientInfo = ClientInfoSchema.parse(req.body);
+
+	if (!getHost(clientInfo.hostId)) {
+		throw new BadRequestError("Host is not available.");
+	}
+
+	const existingClient = getClient(clientInfo.clientId);
+	if (existingClient && !verifyClient(clientInfo)) {
+		throw new BadRequestError("Client verification failed.");
+	}
+
+	res.json({
+		success: true,
+		data: {
+			wsToken: createAppWebSocketToken(user.id, clientInfo),
+			expiresIn: APP_WEBSOCKET_TOKEN_TTL_SECONDS,
+		},
+	});
 });
 
 router.post("/auth/logout", (req, res) => {

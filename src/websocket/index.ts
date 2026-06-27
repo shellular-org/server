@@ -1,12 +1,12 @@
 import type http from "node:http";
 import type { Duplex } from "node:stream";
 
-import { ClientInfoSchema } from "@shellular/protocol";
 import { z } from "zod";
 
-import { validateAccessToken } from "@/auth/store";
+import { verifyAppWebSocketToken } from "@/auth/ws-ticket";
 import { getClient, verifyClient } from "@/db/client";
 import { getHost } from "@/db/host";
+import { recordUserConnectionHistory } from "@/db/user-history";
 import { env } from "@/env";
 import { logger } from "@/logger";
 import { getActiveSessionForHost, joinSession } from "./sessions";
@@ -18,9 +18,11 @@ const HostQuerySchema = z.object({
 	hostId: z.string(),
 });
 
-const AppAuthQuerySchema = z.object({
-	authToken: z.string().min(1),
-});
+const AppAuthQuerySchema = z
+	.object({
+		wsToken: z.string().min(1),
+	})
+	.strict();
 
 const cliWsServer = initCliWebSocket();
 const appWsServer = initAppWebSocket();
@@ -79,28 +81,24 @@ async function handleUpgradeRequest(
 		}
 
 		const authParsed = AppAuthQuerySchema.safeParse(query);
-		if (
-			!authParsed.success ||
-			!validateAccessToken(authParsed.data.authToken)
-		) {
-			logger.warn("Rejecting app websocket: missing or invalid auth token");
+		if (!authParsed.success) {
+			logger.warn("Rejecting app websocket: missing or invalid wsToken query");
+			socket.write("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
+			socket.destroy();
+			return;
+		}
+
+		const clientInfo = verifyAppWebSocketToken(authParsed.data.wsToken);
+		if (!clientInfo) {
+			logger.warn("Rejecting app websocket: invalid or expired wsToken");
 			socket.write("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
 			socket.destroy();
 			return;
 		}
 
 		// async approval before upgrade is fine
-		const parsed = ClientInfoSchema.safeParse(query);
-
 		appWsServer.handleUpgrade(request, socket, head, async (ws) => {
-			if (!parsed.success) {
-				const { code, reason } = CloseCodeAndReason.INVALID_QUERY;
-				logger.info("Rejecting app websocket: invalid query");
-				closeWsWithError(ws, code, reason);
-				return;
-			}
-
-			const { hostId } = parsed.data;
+			const { hostId } = clientInfo;
 			const host = getHost(hostId);
 			if (!host) {
 				logger.info(`Rejecting app websocket: host ${hostId} doesn't exist`);
@@ -109,10 +107,10 @@ async function handleUpgradeRequest(
 				return;
 			}
 
-			const existingClient = getClient(parsed.data.clientId);
-			if (existingClient && !verifyClient(parsed.data)) {
+			const existingClient = getClient(clientInfo.clientId);
+			if (existingClient && !verifyClient(clientInfo)) {
 				logger.info(
-					`Rejecting app websocket: client verification failed for clientId=${parsed.data.clientId}`,
+					`Rejecting app websocket: client verification failed for clientId=${clientInfo.clientId}`,
 				);
 				const { code, reason } = CloseCodeAndReason.INVALID_QUERY;
 				closeWsWithError(ws, code, reason);
@@ -129,25 +127,26 @@ async function handleUpgradeRequest(
 				return;
 			}
 
-			const failure = await requestClientApprovalFromHost(session, parsed.data);
+			const failure = await requestClientApprovalFromHost(session, clientInfo);
 			if (failure) {
 				logger.info(
-					`Rejecting app websocket: approval denied for hostId=${hostId} clientId=${parsed.data.clientId} reason=${failure.reason}`,
+					`Rejecting app websocket: approval denied for hostId=${hostId} clientId=${clientInfo.clientId} reason=${failure.reason}`,
 				);
 				closeWsWithError(ws, failure.code, failure.reason);
 				return;
 			}
 
-			const joined = joinSession(session.id, ws, parsed.data);
+			const joined = joinSession(session.id, ws, clientInfo);
 			if (!joined) {
 				const { code, reason } = CloseCodeAndReason.SESSION_JOIN_FAILED;
 				logger.info(
-					`Rejecting app websocket: join failed for hostId=${hostId} clientId=${parsed.data.clientId}`,
+					`Rejecting app websocket: join failed for hostId=${hostId} clientId=${clientInfo.clientId}`,
 				);
 				closeWsWithError(ws, code, reason);
 				return;
 			}
 
+			recordUserConnectionHistory(clientInfo.userId, clientInfo);
 			appWsServer.emit("connection", ws, request);
 		});
 

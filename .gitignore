@@ -8,3 +8,4 @@ mermaid/
 *.local
 
 credentials.json
+apple_key.p8

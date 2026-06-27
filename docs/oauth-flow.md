@@ -17,9 +17,9 @@ Provider settings:
 
 - Google: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
 - GitHub: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`.
-- Apple: `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`.
+- Apple: `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, plus the `server/apple_key.p8` file.
 
-For Apple, `APPLE_PRIVATE_KEY` should be the PKCS#8 private key from Apple Developer. It can be stored as a single-line value with escaped newlines (`\n`) or as a normal multiline PEM if your environment loader supports it.
+For Apple, the private key is the PKCS#8 `.p8` file from Apple Developer. Place it at `server/apple_key.p8`; this file is ignored by git and read directly by the server.
 
 Provider redirect URLs to register:
 

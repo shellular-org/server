@@ -120,3 +120,22 @@ CREATE TABLE IF NOT EXISTS auth_refresh_tokens (
 );
 
 CREATE INDEX IF NOT EXISTS idx_auth_refresh_tokens_sessionId ON auth_refresh_tokens (sessionId);
+
+CREATE TABLE IF NOT EXISTS user_connection_history (
+    userId TEXT NOT NULL,
+    hostId TEXT NOT NULL,
+    clientId TEXT NOT NULL,
+    appVersion TEXT NOT NULL,
+    platform TEXT NOT NULL,
+    deviceModel TEXT NOT NULL,
+    deviceIsEmulator INTEGER NOT NULL,
+    deviceManufacturer TEXT NOT NULL,
+    firstSeenAt INTEGER NOT NULL,
+    lastSeenAt INTEGER NOT NULL,
+    connectionCount INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY (userId, hostId, clientId),
+    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_connection_history_user_lastSeen
+    ON user_connection_history (userId, lastSeenAt);
