@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import { createServer } from "node:http";
 
 import express from "express";
@@ -22,6 +23,18 @@ process.on("unhandledRejection", (reason) => {
 });
 
 initConfig();
+
+const GIT_COMMIT = (() => {
+	try {
+		const sha = execSync("git rev-parse HEAD", { encoding: "utf8" }).trim();
+		const message = execSync("git log -1 --pretty=%s", {
+			encoding: "utf8",
+		}).trim();
+		return { sha, message };
+	} catch {
+		return { sha: "unknown", message: "unknown" };
+	}
+})();
 
 const app = express();
 
@@ -75,6 +88,11 @@ app.get("/", (_req, res) => {
 		success: true,
 		message:
 			"Welcome to Shellular. Visit https://shellular.dev to download the app and get started.",
+		git: {
+			repo: "https://github.com/shellular-org/server",
+			commit: GIT_COMMIT.sha,
+			message: GIT_COMMIT.message,
+		},
 	});
 });
 

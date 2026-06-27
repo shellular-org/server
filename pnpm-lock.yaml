@@ -64,8 +64,8 @@ importers:
 
 packages:
 
-  '@agentclientprotocol/sdk@0.22.1':
-    resolution: {integrity: sha512-DfqXtl/8gO9NImq094MTaCXEU2vkhh6v7q/kT+9UjZxUqj8hYaya2OjLVIqn16MzNHcXEpShTR2RIauLSYeDQQ==}
+  '@agentclientprotocol/sdk@0.26.0':
+    resolution: {integrity: sha512-ialrcI+RzKOYe+fw+TfpyTdRmEoqIkXLlwbTi6XgaXXfdhNcdod7TmE1VsTnG3yTlox8TMTSMQgWbLLbz3r86Q==}
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
 
@@ -790,7 +790,7 @@ packages:
 
 snapshots:
 
-  '@agentclientprotocol/sdk@0.22.1(zod@4.3.6)':
+  '@agentclientprotocol/sdk@0.26.0(zod@4.3.6)':
     dependencies:
       zod: 4.3.6
 
@@ -928,7 +928,7 @@ snapshots:
 
   '@shellular/protocol@0.0.12':
     dependencies:
-      '@agentclientprotocol/sdk': 0.22.1(zod@4.3.6)
+      '@agentclientprotocol/sdk': 0.26.0(zod@4.3.6)
       zod: 4.3.6
 
   '@types/better-sqlite3@7.6.13':

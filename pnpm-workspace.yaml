@@ -2,3 +2,5 @@ allowBuilds:
   better-sqlite3: true
   bufferutil: true
   esbuild: true
+minimumReleaseAgeExclude:
+  - "@shellular/protocol"
