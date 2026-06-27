@@ -77,12 +77,15 @@ Access tokens expire after 15 minutes. Refresh tokens rotate on every refresh an
 ```mermaid
 flowchart TD
     A[App wants to connect to /app WebSocket] --> B[App refreshes access token if needed]
-    B --> C[App opens /app?authToken=ACCESS_TOKEN&hostId=...]
-    C --> D{Server validates access token}
-    D -- Invalid or expired --> E[Reject upgrade with 403]
-    D -- Valid --> F[Validate client info and host availability]
-    F --> G[Request CLI approval]
-    G --> H[Join relay session]
+    B --> C[App posts client info to /auth/ws-token with Authorization bearer access token]
+    C --> D{Server validates access token, client info, host availability, and known client identity}
+    D -- Invalid or expired --> E[Reject token request]
+    D -- Valid --> F[Server returns short-lived wsToken]
+    F --> G[App opens /app?wsToken=...]
+    G --> H{Server validates wsToken}
+    H -- Invalid or expired --> I[Reject upgrade with 403]
+    H -- Valid --> J[Request CLI approval]
+    J --> K[Join relay session]
 ```
 
 Only the app WebSocket path requires OAuth. The `/cli` WebSocket path and `/host/register` flow are intentionally unchanged.
