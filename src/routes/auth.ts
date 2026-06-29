@@ -15,6 +15,7 @@ import {
 	createLinkCode,
 	exchangeCodeForTokens,
 	exchangeLinkCodeForAccount,
+	getLoginStateCallbackUrl,
 	type LoginState,
 	type ProviderProfile,
 	refreshToken,
@@ -47,6 +48,10 @@ const OAuthStartSchema = z.object({
 	provider: z.string(),
 });
 
+const OAuthStartBodySchema = z.object({
+	callbackUrl: z.string().optional(),
+});
+
 const OAuthCallbackSchema = z.object({
 	code: z.string().min(1),
 	state: z.string().min(1),
@@ -67,7 +72,9 @@ router.get("/auth/providers", (_req, res) => {
 router.post("/auth/oauth/:provider/start", authLimiter, (req, res) => {
 	const { provider: rawProvider } = OAuthStartSchema.parse(req.params);
 	const provider = assertProvider(rawProvider);
-	const authorizationUrl = createAuthorizationUrl(provider);
+	const authorizationUrl = createAuthorizationUrl(provider, {
+		callbackUrl: appCallbackUrl(req.body),
+	});
 	res.json({ success: true, data: { authorizationUrl } });
 });
 
@@ -76,7 +83,9 @@ router.post("/auth/oauth/:provider/link/start", authLimiter, (req, res) => {
 	const { provider: rawProvider } = OAuthStartSchema.parse(req.params);
 	const provider = assertProvider(rawProvider);
 	assertProviderCanBeLinked(user.id, provider);
-	const authorizationUrl = createLinkAuthorizationUrl(provider, user.id);
+	const authorizationUrl = createLinkAuthorizationUrl(provider, user.id, {
+		callbackUrl: appCallbackUrl(req.body),
+	});
 	res.json({ success: true, data: { authorizationUrl } });
 });
 
@@ -92,15 +101,22 @@ router.get("/auth/oauth/:provider/callback", authLimiter, async (req, res) => {
 		return;
 	}
 
+	const appCallbackUrl = getLoginStateCallbackUrl(
+		parsed.data.state,
+		provider,
+	);
+
 	try {
 		const result = await getProfileFromCallback(
 			provider,
 			parsed.data.code,
 			parsed.data.state,
 		);
-		res.redirect(callbackUrl(completeOAuthCallback(result)));
+		res.redirect(
+			callbackUrl(completeOAuthCallback(result), result.loginState.callbackUrl),
+		);
 	} catch (error) {
-		res.redirect(callbackUrl({ error: callbackError(error) }));
+		res.redirect(callbackUrl({ error: callbackError(error) }, appCallbackUrl));
 	}
 });
 
@@ -115,6 +131,11 @@ router.post(
 			return;
 		}
 
+		const appCallbackUrl = getLoginStateCallbackUrl(
+			parsed.data.state,
+			"apple",
+		);
+
 		try {
 			const result = await getProfileFromCallback(
 				"apple",
@@ -122,9 +143,16 @@ router.post(
 				parsed.data.state,
 				typeof req.body.user === "string" ? req.body.user : undefined,
 			);
-			res.redirect(callbackUrl(completeOAuthCallback(result)));
+			res.redirect(
+				callbackUrl(
+					completeOAuthCallback(result),
+					result.loginState.callbackUrl,
+				),
+			);
 		} catch (error) {
-			res.redirect(callbackUrl({ error: callbackError(error) }));
+			res.redirect(
+				callbackUrl({ error: callbackError(error) }, appCallbackUrl),
+			);
 		}
 	},
 );
@@ -218,8 +246,44 @@ function getBearerToken(req: express.Request): string | null {
 	return header.slice("Bearer ".length).trim() || null;
 }
 
-function callbackUrl(params: Record<string, string>): string {
-	const url = new URL(env.AUTH_APP_CALLBACK_URL);
+function appCallbackUrl(body: unknown): string {
+	const { callbackUrl: requestedCallbackUrl } = OAuthStartBodySchema.parse(
+		body ?? {},
+	);
+	if (!requestedCallbackUrl) return env.AUTH_APP_CALLBACK_URL;
+
+	let url: URL;
+	try {
+		url = new URL(requestedCallbackUrl);
+	} catch {
+		throw new BadRequestError("Invalid app callback URL.");
+	}
+
+	if (url.host !== "auth-callback") {
+		throw new BadRequestError("Invalid app callback URL.");
+	}
+
+	const defaultScheme = new URL(env.AUTH_APP_CALLBACK_URL).protocol;
+	const allowedSchemes = new Set([
+		defaultScheme,
+		"shellular:",
+		"shellular-dev:",
+		"foxbiz:",
+	]);
+	if (!allowedSchemes.has(url.protocol)) {
+		throw new BadRequestError("Invalid app callback URL.");
+	}
+
+	url.search = "";
+	url.hash = "";
+	return url.toString();
+}
+
+function callbackUrl(
+	params: Record<string, string>,
+	appCallbackUrl?: string | null,
+): string {
+	const url = new URL(appCallbackUrl ?? env.AUTH_APP_CALLBACK_URL);
 	for (const [key, value] of Object.entries(params)) {
 		url.searchParams.set(key, value);
 	}

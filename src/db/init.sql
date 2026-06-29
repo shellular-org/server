@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS oauth_login_states (
     purpose TEXT NOT NULL DEFAULT 'signin',
     userId TEXT,
     codeVerifier TEXT,
+    callbackUrl TEXT,
     createdAt INTEGER NOT NULL,
     expiresAt INTEGER NOT NULL
 );

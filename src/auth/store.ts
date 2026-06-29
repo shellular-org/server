@@ -25,6 +25,7 @@ export type LoginState = {
 	purpose: "signin" | "link";
 	userId: string | null;
 	codeVerifier: string | null;
+	callbackUrl: string | null;
 	expiresAt: number;
 };
 
@@ -56,19 +57,21 @@ export function saveLoginState(
 	provider: AuthProvider,
 	options: {
 		codeVerifier?: string;
+		callbackUrl?: string;
 		purpose?: LoginState["purpose"];
 		userId?: string;
 	} = {},
 ) {
 	const now = Date.now();
 	db.prepare(
-		"INSERT INTO oauth_login_states (stateHash, provider, purpose, userId, codeVerifier, createdAt, expiresAt) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO oauth_login_states (stateHash, provider, purpose, userId, codeVerifier, callbackUrl, createdAt, expiresAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
 	).run(
 		hashToken(state),
 		provider,
 		options.purpose ?? "signin",
 		options.userId ?? null,
 		options.codeVerifier ?? null,
+		options.callbackUrl ?? null,
 		now,
 		now + LOGIN_STATE_TTL_MS,
 	);
@@ -81,7 +84,7 @@ export function consumeLoginState(
 	const stateHash = hashToken(state);
 	const row = db
 		.prepare(
-			"SELECT provider, purpose, userId, codeVerifier, expiresAt FROM oauth_login_states WHERE stateHash = ?",
+			"SELECT provider, purpose, userId, codeVerifier, callbackUrl, expiresAt FROM oauth_login_states WHERE stateHash = ?",
 		)
 		.get(stateHash) as LoginState | undefined;
 
@@ -96,6 +99,25 @@ export function consumeLoginState(
 	}
 
 	return row;
+}
+
+export function getLoginStateCallbackUrl(
+	state: string,
+	provider: AuthProvider,
+): string | null {
+	const row = db
+		.prepare(
+			"SELECT provider, callbackUrl, expiresAt FROM oauth_login_states WHERE stateHash = ?",
+		)
+		.get(hashToken(state)) as
+		| Pick<LoginState, "provider" | "callbackUrl" | "expiresAt">
+		| undefined;
+
+	if (!row || row.provider !== provider || row.expiresAt < Date.now()) {
+		return null;
+	}
+
+	return row.callbackUrl;
 }
 
 export function assertProviderCanBeLinked(

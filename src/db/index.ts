@@ -55,6 +55,11 @@ function runAuthMigrations(): void {
 		"userId",
 		"ALTER TABLE oauth_login_states ADD COLUMN userId TEXT",
 	);
+	ensureColumn(
+		"oauth_login_states",
+		"callbackUrl",
+		"ALTER TABLE oauth_login_states ADD COLUMN callbackUrl TEXT",
+	);
 	db.exec(`
 		CREATE TABLE IF NOT EXISTS auth_link_codes (
 			codeHash TEXT PRIMARY KEY,

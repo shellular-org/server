@@ -55,20 +55,32 @@ export function assertProvider(value: string): AuthProvider {
 	throw new BadRequestError("Unsupported OAuth provider.");
 }
 
-export function createAuthorizationUrl(provider: AuthProvider): string {
-	return createOAuthAuthorizationUrl(provider);
+export function createAuthorizationUrl(
+	provider: AuthProvider,
+	options: { callbackUrl?: string } = {},
+): string {
+	return createOAuthAuthorizationUrl(provider, options);
 }
 
 export function createLinkAuthorizationUrl(
 	provider: AuthProvider,
 	userId: string,
+	options: { callbackUrl?: string } = {},
 ): string {
-	return createOAuthAuthorizationUrl(provider, { purpose: "link", userId });
+	return createOAuthAuthorizationUrl(provider, {
+		...options,
+		purpose: "link",
+		userId,
+	});
 }
 
 function createOAuthAuthorizationUrl(
 	provider: AuthProvider,
-	options: { purpose?: LoginState["purpose"]; userId?: string } = {},
+	options: {
+		callbackUrl?: string;
+		purpose?: LoginState["purpose"];
+		userId?: string;
+	} = {},
 ): string {
 	ensureProviderEnabled(provider);
 	const state = arctic.generateState();
@@ -77,6 +89,7 @@ function createOAuthAuthorizationUrl(
 		const codeVerifier = arctic.generateCodeVerifier();
 		saveLoginState(state, provider, {
 			codeVerifier,
+			callbackUrl: options.callbackUrl,
 			purpose: options.purpose,
 			userId: options.userId,
 		});
@@ -90,6 +103,7 @@ function createOAuthAuthorizationUrl(
 	}
 
 	saveLoginState(state, provider, {
+		callbackUrl: options.callbackUrl,
 		purpose: options.purpose,
 		userId: options.userId,
 	});

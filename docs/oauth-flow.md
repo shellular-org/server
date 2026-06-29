@@ -56,6 +56,8 @@ sequenceDiagram
 
 The app receives only a short-lived exchange code through the custom URL scheme. Access and refresh tokens are returned only through the direct `/auth/exchange` API call.
 
+Android debug builds send `shellular-dev://auth-callback` when starting OAuth so they can coexist with the production app without Android showing an app chooser. The server stores the requested app callback URL with the OAuth state and falls back to `AUTH_APP_CALLBACK_URL` for older clients or invalid callbacks.
+
 ## Token Lifecycle
 
 ```mermaid
