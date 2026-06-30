@@ -271,7 +271,11 @@ export function initAppWebSocket() {
 function sendJoinedHandshake(ws: WebSocket, session: Session): void {
 	const joinedMsg: SessionJoinedMsg = {
 		type: MsgType.SESSION_JOINED,
-		data: { ...session.hostInfo, sessionId: session.id },
+		data: {
+			...session.hostInfo,
+			...session.updateInfo,
+			sessionId: session.id,
+		},
 	};
 	ws.send(JSON.stringify({ id: `server_${nanoid(8)}`, ...joinedMsg }));
 }

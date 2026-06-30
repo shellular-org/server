@@ -20,11 +20,22 @@ type SocketInfo = {
 	session: Session;
 } & ({ role: "host" } | { role: "client"; clientId: string });
 
+/**
+ * Dynamic CLI update status, re-checked by the host on each client approval.
+ * Kept off `hostInfo` (which is stable host identity) because it changes over a
+ * long-lived session as new versions are published.
+ */
+interface SessionUpdateInfo {
+	updateAvailable?: boolean;
+	latestCliVersion?: string;
+}
+
 export interface Session {
 	id: string;
 	hostId: string;
 	host: WebSocket;
 	hostInfo: HostInfo;
+	updateInfo: SessionUpdateInfo;
 	clients: Map<string, ClientInfoWithWebSocket>;
 }
 
@@ -51,6 +62,7 @@ export function createSession(
 		hostId,
 		host,
 		hostInfo,
+		updateInfo: {},
 		clients: new Map(),
 	};
 	sessions.set(session.id, session);
