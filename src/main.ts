@@ -10,6 +10,7 @@ import { logger } from "@/logger";
 import cors from "@/middleware/cors";
 import { router as authRouter } from "@/routes/auth";
 import { router as hostRouter } from "@/routes/host";
+import { router as utilsRouter } from "@/routes/utils";
 import { printRoutes } from "@/utils/express";
 import { initWebSocketRelay } from "@/websocket/index";
 import { getSessionStats } from "@/websocket/sessions";
@@ -45,6 +46,7 @@ app.use(express.json());
 
 app.use(authRouter);
 app.use(hostRouter);
+app.use(utilsRouter);
 
 app.use((req, res, next) => {
 	const start = Date.now();

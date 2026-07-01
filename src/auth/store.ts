@@ -29,7 +29,7 @@ export type LoginState = {
 	expiresAt: number;
 };
 
-type TokenPair = {
+export type TokenPair = {
 	accessToken: string;
 	accessTokenExpiresAt: number;
 	refreshToken: string;
@@ -288,7 +288,7 @@ export function unlinkProviderAccount(
 	return user;
 }
 
-function linkProviderAccount(
+export function linkProviderAccount(
 	userId: string,
 	profile: ProviderProfile,
 ): AuthUser {
@@ -459,7 +459,7 @@ export function revokeSessionByAccessToken(accessToken: string): void {
 	if (row) revokeSession(row.sessionId);
 }
 
-function createSession(userId: string): TokenPair {
+export function createSession(userId: string): TokenPair {
 	const user = getUserById(userId);
 	if (!user) {
 		throw new ForbiddenError("Your account is no longer available.");

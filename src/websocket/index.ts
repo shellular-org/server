@@ -108,7 +108,11 @@ async function handleUpgradeRequest(
 			}
 
 			const existingClient = getClient(clientInfo.clientId);
-			if (existingClient && !verifyClient(clientInfo)) {
+			if (
+				existingClient &&
+				clientInfo.platform !== "browser" &&
+				!verifyClient(clientInfo)
+			) {
 				logger.info(
 					`Rejecting app websocket: client verification failed for clientId=${clientInfo.clientId}`,
 				);

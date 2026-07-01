@@ -3,7 +3,12 @@ import type { NextFunction, Request, Response } from "express";
 import { env } from "@/env";
 
 export default function cors(req: Request, res: Response, next: NextFunction) {
-	res.header("Access-Control-Allow-Origin", env.CORS_ORIGIN);
+	const requestOrigin = req.headers.origin;
+	res.header(
+		"Access-Control-Allow-Origin",
+		env.NODE_ENV === "dev" && requestOrigin ? requestOrigin : env.CORS_ORIGIN,
+	);
+	res.header("Access-Control-Allow-Credentials", "true");
 	res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
 	res.header(
 		"Access-Control-Allow-Headers",

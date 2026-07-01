@@ -47,16 +47,18 @@ sequenceDiagram
     Server->>Provider: Exchange code for provider tokens/profile
     Server->>SQLite: Upsert user and linked OAuth account
     Server->>SQLite: Store one-time exchange code hash
-    Server-->>App: Redirect shellular://auth-callback?code=...
+    Server-->>App: Redirect app callback with code
     App->>Server: POST /auth/exchange
     Server->>SQLite: Consume exchange code
     Server->>SQLite: Create session, access token hash, refresh token hash
     Server-->>App: User, access token, refresh token
 ```
 
-The app receives only a short-lived exchange code through the custom URL scheme. Access and refresh tokens are returned only through the direct `/auth/exchange` API call.
+The app receives only a short-lived exchange code through the callback URL. Access and refresh tokens are returned only through the direct `/auth/exchange` API call.
 
 Android debug builds send `shellular-dev://auth-callback` when starting OAuth so they can coexist with the production app without Android showing an app chooser. The server stores the requested app callback URL with the OAuth state and falls back to `AUTH_APP_CALLBACK_URL` for older clients or invalid callbacks.
+
+Browser builds cannot receive custom URL schemes, so they send a same-origin callback URL with `shellularAuthCallback=1`, for example `https://app.shellular.dev/?shellularAuthCallback=1`. For browser sign-in, the server completes the OAuth callback itself, creates the Shellular session, sets HttpOnly Secure SameSite=None cookies on the API origin, and redirects the popup back to the app callback. The original browser tab then refreshes `/auth/me` with `credentials: include`. The popup callback still posts a lightweight completion signal and closes, but it no longer carries access or refresh tokens.
 
 ## Token Lifecycle
 
@@ -118,7 +120,7 @@ sequenceDiagram
     Server->>SQLite: Consume link state
     Server->>Provider: Exchange code for verified profile
     Server->>SQLite: Store one-time link code hash
-    Server-->>App: Redirect shellular://auth-callback?linkCode=...
+    Server-->>App: Redirect app callback with linkCode
     App->>Server: POST /auth/oauth/link/exchange with access token
     Server->>SQLite: Consume link code and attach provider
     Server-->>App: Updated user with linkedAccounts
