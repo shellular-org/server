@@ -1,9 +1,13 @@
 import type http from "node:http";
 import type { Duplex } from "node:stream";
 
+import { type ClientInfo, ClientInfoSchema } from "@shellular/protocol";
 import { z } from "zod";
 
-import { verifyAppWebSocketToken } from "@/auth/ws-ticket";
+import {
+	type AppWebSocketTokenPayload,
+	verifyAppWebSocketToken,
+} from "@/auth/ws-ticket";
 import { getClient, verifyClient } from "@/db/client";
 import { getHost } from "@/db/host";
 import { recordUserConnectionHistory } from "@/db/user-history";
@@ -23,6 +27,10 @@ const AppAuthQuerySchema = z
 		wsToken: z.string().min(1),
 	})
 	.strict();
+
+type AppConnectionAuth =
+	| { clientInfo: AppWebSocketTokenPayload; userId: string; legacy: false }
+	| { clientInfo: ClientInfo; userId: null; legacy: true };
 
 const cliWsServer = initCliWebSocket();
 const appWsServer = initAppWebSocket();
@@ -80,21 +88,15 @@ async function handleUpgradeRequest(
 			return;
 		}
 
-		const authParsed = AppAuthQuerySchema.safeParse(query);
-		if (!authParsed.success) {
-			logger.warn("Rejecting app websocket: missing or invalid wsToken query");
+		const auth = parseAppConnectionAuth(query);
+		if (!auth) {
+			logger.warn("Rejecting app websocket: missing or invalid app auth query");
 			socket.write("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
 			socket.destroy();
 			return;
 		}
 
-		const clientInfo = verifyAppWebSocketToken(authParsed.data.wsToken);
-		if (!clientInfo) {
-			logger.warn("Rejecting app websocket: invalid or expired wsToken");
-			socket.write("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
-			socket.destroy();
-			return;
-		}
+		const { clientInfo } = auth;
 
 		// async approval before upgrade is fine
 		appWsServer.handleUpgrade(request, socket, head, async (ws) => {
@@ -150,7 +152,9 @@ async function handleUpgradeRequest(
 				return;
 			}
 
-			recordUserConnectionHistory(clientInfo.userId, clientInfo);
+			if (auth.userId) {
+				recordUserConnectionHistory(auth.userId, clientInfo);
+			}
 			appWsServer.emit("connection", ws, request);
 		});
 
@@ -160,6 +164,35 @@ async function handleUpgradeRequest(
 	// only unknown route gets hard rejected
 	socket.write("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
 	socket.destroy();
+}
+
+function parseAppConnectionAuth(
+	query: Record<string, string>,
+): AppConnectionAuth | null {
+	if ("wsToken" in query) {
+		const authParsed = AppAuthQuerySchema.safeParse(query);
+		if (!authParsed.success) return null;
+
+		const clientInfo = verifyAppWebSocketToken(authParsed.data.wsToken);
+		if (!clientInfo) {
+			logger.warn("Rejecting app websocket: invalid or expired wsToken");
+			return null;
+		}
+
+		return { clientInfo, userId: clientInfo.userId, legacy: false };
+	}
+
+	const legacyParsed = ClientInfoSchema.safeParse(query);
+	if (!legacyParsed.success) return null;
+	if (legacyParsed.data.platform === "browser") {
+		logger.warn("Rejecting legacy browser websocket without wsToken");
+		return null;
+	}
+
+	logger.warn(
+		`Accepting legacy unauthenticated app websocket for clientId=${legacyParsed.data.clientId} hostId=${legacyParsed.data.hostId}`,
+	);
+	return { clientInfo: legacyParsed.data, userId: null, legacy: true };
 }
 
 const APP_PROTOCOL = "shellular:";
