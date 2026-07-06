@@ -3,7 +3,7 @@
 		{
 			"id": "notice-XEngwS78El",
 			"title": "Keep the Shellular CLI updated",
-			"body": "We're building a way to let you update the Shellular CLI without logging into your VPS. Until that ships, please keep the CLI updated on your host so everything keeps working smoothly. Sorry for the inconvenience",
+			"body": "Please update your Shellular CLI to v0.0.43 or later. Future updates can be done from the app while the CLI is running with `npx shellular start`.",
 			"createdAt": "2026-07-06T18:34:27.016Z"
 		}
 	]
