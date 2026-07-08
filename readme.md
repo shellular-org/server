@@ -55,6 +55,40 @@ The `/cli` WebSocket and `/host/register` flow are unchanged.
 
 Successful app joins are recorded in `user_connection_history` for read-only account history. `GET /auth/history` returns the authenticated user's host and device history for display in the app. This data is intended for visibility, history, and analytics only; it is not used for host sync or E2EE key sync.
 
+## App Notices
+
+Short, dismiss-once messages shown as a popup on the app home screen (e.g. maintenance heads-ups). Notices are served from a plain JSON file so they can be pushed to already-installed apps without an app update.
+
+**How it works**
+
+- Notices live in `content/notices.json`.
+- The server reads that file into memory on boot and re-reads it about once an hour, so edits show up in the app without a redeploy or restart. A malformed edit keeps the previous cache rather than taking the endpoint down.
+- `GET /notices` returns the cached notices; the app fetches this and shows the first notice the user hasn't dismissed.
+- Each notice has a stable `id`. The app remembers which ids a user dismissed, so a dismissed notice never reappears — but adding a **new** notice (new id) pops up for everyone. To push a fresh message, add a new notice.
+
+**Managing notices**
+
+Use the `notices` CLI rather than hand-editing the JSON — it owns id generation so ids are never typed by hand.
+
+```bash
+# List all notices
+pnpm notices list
+
+# Add a notice interactively — prompts for title and body (id is generated automatically)
+pnpm notices add
+
+# Add a notice non-interactively with flags
+pnpm notices add --title "Heads up" --body "Some message"
+
+# Edit an existing notice's title and/or body
+pnpm notices edit <id> --title "New title" --body "New body"
+
+# Remove a notice
+pnpm notices rm <id>
+```
+
+Changes take effect the next time the server re-reads the file (within ~1 hour), or immediately on restart.
+
 ## License
 
 AGPL-3.0-only

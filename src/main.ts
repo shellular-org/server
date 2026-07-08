@@ -8,8 +8,10 @@ import { env } from "@/env";
 import { HttpError } from "@/error/http";
 import { logger } from "@/logger";
 import cors from "@/middleware/cors";
+import { initNotices } from "@/notices";
 import { router as authRouter } from "@/routes/auth";
 import { router as hostRouter } from "@/routes/host";
+import { router as noticesRouter } from "@/routes/notices";
 import { router as utilsRouter } from "@/routes/utils";
 import { printRoutes } from "@/utils/express";
 import { initWebSocketRelay } from "@/websocket/index";
@@ -47,6 +49,7 @@ app.use(express.json());
 app.use(authRouter);
 app.use(hostRouter);
 app.use(utilsRouter);
+app.use(noticesRouter);
 
 app.use((req, res, next) => {
 	const start = Date.now();
@@ -134,6 +137,7 @@ app.use((_req, res) => {
 
 const server = createServer(app);
 initWebSocketRelay(server);
+initNotices();
 
 server.listen(env.PORT, env.HOST, () => {
 	logger.info(`Server is running on port ${env.PORT}`);

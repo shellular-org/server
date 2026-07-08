@@ -116,11 +116,21 @@ export function initCliWebSocket() {
 						zodError: z.treeifyError(parsed.error),
 					});
 				} else {
-					resolvePendingClient(
-						session.hostId,
-						parsed.data.data.clientId,
-						parsed.data.data.approved,
-					);
+					const { data } = parsed.data;
+
+					// Add the host's freshly re-checked info into the session so the
+					// upcoming SESSION_JOINED handshake reflects current state for this client.
+					// Stable identity (cliVersion, canSelfUpdate) lives on hostInfo; the dynamic
+					// npm-lookup result (updateAvailable, latestCliVersion) lives on updateInfo.
+					if (data.updateAvailable !== undefined) {
+						session.updateInfo.updateAvailable = data.updateAvailable;
+					}
+
+					if (data.latestCliVersion !== undefined) {
+						session.updateInfo.latestCliVersion = data.latestCliVersion;
+					}
+
+					resolvePendingClient(session.hostId, data.clientId, data.approved);
 				}
 
 				return;

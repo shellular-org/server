@@ -12,8 +12,8 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0
       '@shellular/protocol':
-        specifier: ^0.0.12
-        version: 0.0.12
+        specifier: ^0.0.25
+        version: 0.0.25
       arctic:
         specifier: ^3.7.0
         version: 3.7.0
@@ -300,8 +300,8 @@ packages:
   '@oslojs/jwt@0.2.0':
     resolution: {integrity: sha512-bLE7BtHrURedCn4Mco3ma9L4Y1GR2SMBuIvjWr7rmQ4/W/4Jy70TIAgZ+0nIlk0xHz1vNP8x8DCns45Sb2XRbg==}
 
-  '@shellular/protocol@0.0.12':
-    resolution: {integrity: sha512-RKwdjk0vjSF3vCS6QEpRnHp9T9lKZsgjCeppvpZHl+80h1uG1/ukzY25w9oEjtshiFi4oOYvD9HsRLyWOgve3Q==}
+  '@shellular/protocol@0.0.25':
+    resolution: {integrity: sha512-rsRlj2V+Jy8HqHrQqlxPiOA75+IsuGiedjI3UsKmWRgTvvrosz7ZTjKmk1KP1JfI6Qf8QJgxW639g+/giLZt+g==}
 
   '@types/better-sqlite3@7.6.13':
     resolution: {integrity: sha512-NMv9ASNARoKksWtsq/SHakpYAYnhBrQgGD8zkLYk/jaK8jUGn08CfEdTRgYhMypUQAfzSP8W6gNLe0q19/t4VA==}
@@ -926,7 +926,7 @@ snapshots:
     dependencies:
       '@oslojs/encoding': 0.4.1
 
-  '@shellular/protocol@0.0.12':
+  '@shellular/protocol@0.0.25':
     dependencies:
       '@agentclientprotocol/sdk': 0.26.0(zod@4.3.6)
       zod: 4.3.6

@@ -7,15 +7,17 @@
 		"dev": "NODE_ENV=dev tsx --watch src/main.ts",
 		"build": "tsc",
 		"format": "pnpx @biomejs/biome check --write src",
-		"start": "NODE_ENV=prod tsx src/main.ts"
+		"start": "NODE_ENV=prod tsx src/main.ts",
+		"notices": "tsx scripts/notices.ts",
+		"pm2-start": "pm2 start --name api.shellular.dev pnpm run start"
 	},
 	"keywords": [],
 	"author": "",
 	"license": "AGPL-3.0-only",
 	"type": "commonjs",
 	"dependencies": {
-		"@shellular/protocol": "^0.0.12",
 		"@oslojs/encoding": "^1.1.0",
+		"@shellular/protocol": "^0.0.25",
 		"arctic": "^3.7.0",
 		"better-sqlite3": "^12.10.0",
 		"dotenv": "^17.4.1",

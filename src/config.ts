@@ -8,6 +8,9 @@ export const APP_DIR_NAME = ".shellular";
 export const APP_DIR = join(HOME_DIR, APP_DIR_NAME);
 export const DB_FILE = join(APP_DIR, DB_FILE_NAME);
 
+// relative this file : server/src/config.ts -> server/
+export const PROJECT_ROOT_DIR = join(__dirname, "..");
+
 export const initConfig = () => {
 	if (!existsSync(APP_DIR)) {
 		mkdirSync(APP_DIR, { recursive: true });
