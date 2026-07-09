@@ -2,6 +2,7 @@ import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 import { type ClientInfo, ClientInfoSchema } from "@shellular/protocol";
 import { z } from "zod";
+
 import { env } from "@/env";
 
 export const APP_WEBSOCKET_TOKEN_TTL_SECONDS = 30;

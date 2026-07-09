@@ -44,7 +44,7 @@ See [docs/oauth-flow.md](docs/oauth-flow.md) for provider setup, token lifecycle
 The app no longer sends access tokens or device metadata in the `/app` WebSocket URL. Instead:
 
 1. The app refreshes its access token.
-2. The app sends `POST /auth/ws-token` with `Authorization: Bearer <accessToken>` and client metadata in the JSON body.
+2. The app sends `POST /auth/ws-app-token` with `Authorization: Bearer <accessToken>` and client metadata in the JSON body.
 3. The server validates the user token, `ClientInfoSchema`, host existence, and known-client identity.
 4. The server returns a signed app WebSocket ticket that expires after 30 seconds.
 5. The app opens `/app?wsToken=<ticket>`.

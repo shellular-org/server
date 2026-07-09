@@ -81,7 +81,7 @@ Access tokens expire after 15 minutes. Refresh tokens rotate on every refresh an
 ```mermaid
 flowchart TD
     A[App wants to connect to /app WebSocket] --> B[App refreshes access token if needed]
-    B --> C[App posts client info to /auth/ws-token with Authorization bearer access token]
+    B --> C[App posts client info to /auth/ws-app-token with Authorization bearer access token]
     C --> D{Server validates access token, client info, host availability, and known client identity}
     D -- Invalid or expired --> E[Reject token request]
     D -- Valid --> F[Server returns short-lived wsToken]

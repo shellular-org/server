@@ -2,7 +2,13 @@ import { Router } from "express";
 import { z } from "zod";
 import { BadRequestError } from "@/error/http";
 
-export const router = Router();
+const router = Router();
+const ROUTE_PREFIX = "";
+
+export default {
+	router,
+	prefix: ROUTE_PREFIX,
+};
 
 const ImageProxyQuerySchema = z.object({
 	url: z.string().min(1),

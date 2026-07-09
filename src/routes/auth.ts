@@ -32,14 +32,20 @@ import {
 import {
 	APP_WEBSOCKET_TOKEN_TTL_SECONDS,
 	createAppWebSocketToken,
-} from "@/auth/ws-ticket";
+} from "@/auth/ws-app-ticket";
 import { getClient, verifyClient } from "@/db/client";
 import { getHost } from "@/db/host";
 import { listUserConnectionHistory } from "@/db/user-history";
 import { env } from "@/env";
 import { BadRequestError, ConflictError, ForbiddenError } from "@/error/http";
 
-export const router = Router();
+const router = Router();
+const ROUTE_PREFIX = "/auth";
+
+export default {
+	router,
+	prefix: ROUTE_PREFIX,
+};
 
 const authLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000,
@@ -72,11 +78,11 @@ const RefreshSchema = z.object({
 const AUTH_ACCESS_COOKIE = "__Host-shellular_access";
 const AUTH_REFRESH_COOKIE = "__Host-shellular_refresh";
 
-router.get("/auth/providers", (_req, res) => {
+router.get("/providers", (_req, res) => {
 	res.json({ success: true, data: { providers: listProviders() } });
 });
 
-router.post("/auth/oauth/:provider/start", authLimiter, (req, res) => {
+router.post("/oauth/:provider/start", authLimiter, (req, res) => {
 	const { provider: rawProvider } = OAuthStartSchema.parse(req.params);
 	const provider = assertProvider(rawProvider);
 	const authorizationUrl = createAuthorizationUrl(provider, {
@@ -85,7 +91,7 @@ router.post("/auth/oauth/:provider/start", authLimiter, (req, res) => {
 	res.json({ success: true, data: { authorizationUrl } });
 });
 
-router.post("/auth/oauth/:provider/link/start", authLimiter, (req, res) => {
+router.post("/oauth/:provider/link/start", authLimiter, (req, res) => {
 	const user = requireAuthUser(req);
 	const { provider: rawProvider } = OAuthStartSchema.parse(req.params);
 	const provider = assertProvider(rawProvider);
@@ -96,7 +102,7 @@ router.post("/auth/oauth/:provider/link/start", authLimiter, (req, res) => {
 	res.json({ success: true, data: { authorizationUrl } });
 });
 
-router.get("/auth/oauth/:provider/callback", authLimiter, async (req, res) => {
+router.get("/oauth/:provider/callback", authLimiter, async (req, res) => {
 	const provider = assertProvider(String(req.params.provider));
 	if (provider === "apple") {
 		throw new BadRequestError("Apple sign-in callback must use POST.");
@@ -134,7 +140,7 @@ router.get("/auth/oauth/:provider/callback", authLimiter, async (req, res) => {
 });
 
 router.post(
-	"/auth/oauth/apple/callback",
+	"/oauth/apple/callback",
 	authLimiter,
 	express.urlencoded({ extended: false }),
 	async (req, res) => {
@@ -176,7 +182,7 @@ router.post(
 	},
 );
 
-router.post("/auth/exchange", authLimiter, (req, res) => {
+router.post("/exchange", authLimiter, (req, res) => {
 	const { code } = ExchangeSchema.parse(req.body);
 	res.json({
 		success: true,
@@ -184,7 +190,7 @@ router.post("/auth/exchange", authLimiter, (req, res) => {
 	});
 });
 
-router.post("/auth/oauth/link/exchange", authLimiter, (req, res) => {
+router.post("/oauth/link/exchange", authLimiter, (req, res) => {
 	const user = requireAuthUser(req);
 	const { code } = ExchangeSchema.parse(req.body);
 	res.json({
@@ -195,7 +201,7 @@ router.post("/auth/oauth/link/exchange", authLimiter, (req, res) => {
 	});
 });
 
-router.post("/auth/refresh", authLimiter, (req, res) => {
+router.post("/refresh", authLimiter, (req, res) => {
 	const parsed = RefreshSchema.safeParse(req.body);
 	const token = parsed.success
 		? parsed.data.refreshToken
@@ -211,12 +217,12 @@ router.post("/auth/refresh", authLimiter, (req, res) => {
 	res.json({ success: true, data: tokenPairResponse(req, data) });
 });
 
-router.get("/auth/me", (req, res) => {
+router.get("/me", (req, res) => {
 	const user = requireAuthUser(req);
 	res.json({ success: true, data: { user: authUserResponse(req, user) } });
 });
 
-router.get("/auth/history", (req, res) => {
+router.get("/history", (req, res) => {
 	const user = requireAuthUser(req);
 	res.json({
 		success: true,
@@ -224,7 +230,7 @@ router.get("/auth/history", (req, res) => {
 	});
 });
 
-router.post("/auth/ws-token", (req, res) => {
+router.post("/ws-app-token", (req, res) => {
 	const user = requireAuthUser(req);
 	const requestedClientInfo = ClientInfoSchema.parse(req.body);
 	const clientInfo = effectiveClientInfo(user.id, requestedClientInfo);
@@ -252,7 +258,7 @@ router.post("/auth/ws-token", (req, res) => {
 	});
 });
 
-router.post("/auth/logout", (req, res) => {
+router.post("/logout", (req, res) => {
 	const accessToken = getBearerToken(req) ?? getCookie(req, AUTH_ACCESS_COOKIE);
 	if (accessToken) {
 		revokeSessionByAccessToken(accessToken);
@@ -269,7 +275,7 @@ router.post("/auth/logout", (req, res) => {
 	res.json({ success: true });
 });
 
-router.delete("/auth/oauth/accounts/:provider", authLimiter, (req, res) => {
+router.delete("/oauth/accounts/:provider", authLimiter, (req, res) => {
 	const user = requireAuthUser(req);
 	const provider = assertProvider(String(req.params.provider));
 	res.json({

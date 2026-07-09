@@ -7,7 +7,7 @@ import { z } from "zod";
 import {
 	type AppWebSocketTokenPayload,
 	verifyAppWebSocketToken,
-} from "@/auth/ws-ticket";
+} from "@/auth/ws-app-ticket";
 import { getClient, verifyClient } from "@/db/client";
 import { getHost } from "@/db/host";
 import { recordUserConnectionHistory } from "@/db/user-history";

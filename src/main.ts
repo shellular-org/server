@@ -1,18 +1,19 @@
-import { execSync } from "node:child_process";
 import { createServer } from "node:http";
 
 import express from "express";
 import { z } from "zod";
-import { initConfig } from "@/config";
+
+import { GIT_COMMIT, initConfig } from "@/config";
 import { env } from "@/env";
 import { HttpError } from "@/error/http";
 import { logger } from "@/logger";
 import cors from "@/middleware/cors";
 import { initNotices } from "@/notices";
-import { router as authRouter } from "@/routes/auth";
-import { router as hostRouter } from "@/routes/host";
-import { router as noticesRouter } from "@/routes/notices";
-import { router as utilsRouter } from "@/routes/utils";
+import authRoutes from "@/routes/auth";
+import hostRoutes from "@/routes/host";
+import noticesRoutes from "@/routes/notices";
+import utilsRoutes from "@/routes/utils";
+import type { RouteModule } from "@/types";
 import { printRoutes } from "@/utils/express";
 import { initWebSocketRelay } from "@/websocket/index";
 import { getSessionStats } from "@/websocket/sessions";
@@ -27,18 +28,6 @@ process.on("unhandledRejection", (reason) => {
 
 initConfig();
 
-const GIT_COMMIT = (() => {
-	try {
-		const sha = execSync("git rev-parse HEAD", { encoding: "utf8" }).trim();
-		const message = execSync("git log -1 --pretty=%s", {
-			encoding: "utf8",
-		}).trim();
-		return { sha, message };
-	} catch {
-		return { sha: "unknown", message: "unknown" };
-	}
-})();
-
 const app = express();
 
 app.set("trust proxy", 1); // trust first proxy (if behind a proxy like nginx or cloudflare)
@@ -46,10 +35,20 @@ app.set("trust proxy", 1); // trust first proxy (if behind a proxy like nginx or
 app.use(cors);
 app.use(express.json());
 
-app.use(authRouter);
-app.use(hostRouter);
-app.use(utilsRouter);
-app.use(noticesRouter);
+const routes: RouteModule[] = [
+	authRoutes,
+	hostRoutes,
+	utilsRoutes,
+	noticesRoutes,
+];
+
+for (const { prefix, router } of routes) {
+	if (prefix) {
+		app.use(prefix, router);
+	} else {
+		app.use(router);
+	}
+}
 
 app.use((req, res, next) => {
 	const start = Date.now();
@@ -143,4 +142,4 @@ server.listen(env.PORT, env.HOST, () => {
 	logger.info(`Server is running on port ${env.PORT}`);
 });
 
-printRoutes(app);
+printRoutes(app, routes);
