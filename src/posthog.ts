@@ -191,6 +191,7 @@ export function startHostHeartbeatForPosthog(getHosts: () => HostInfo[]): void {
     }
   };
 
+  logger.info("Starting PostHog host-active heartbeat sweep");
   heartbeatTimer = setInterval(sweep, HEARTBEAT_SWEEP_MS);
   heartbeatTimer.unref?.();
 }
