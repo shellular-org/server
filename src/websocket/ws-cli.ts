@@ -14,6 +14,7 @@ import { z } from "zod";
 
 import { getHost, verifyHost } from "@/db/host";
 import { logger } from "@/logger";
+import { captureCliConnection } from "@/posthog";
 import { type HostToClientMsg, HostToClientMsgSchema } from "./protocol";
 import {
 	createSession,
@@ -206,6 +207,7 @@ function handleAuth(ws: WebSocket, msg: SessionHostMsg): Session {
 	}
 
 	const session = createSession(hostId, ws, msg.data);
+	captureCliConnection(session.hostInfo);
 
 	// complete handshake with the host (CLI)
 	const hostedId = `server_${nanoid(8)}`;

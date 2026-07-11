@@ -9,6 +9,7 @@ import { HttpError } from "@/error/http";
 import { logger } from "@/logger";
 import cors from "@/middleware/cors";
 import { initNotices } from "@/notices";
+import { shutdownPostHog, startHostHeartbeatForPosthog } from "@/posthog";
 import authRoutes from "@/routes/auth";
 import hostRoutes from "@/routes/host";
 import noticesRoutes from "@/routes/notices";
@@ -16,7 +17,7 @@ import utilsRoutes from "@/routes/utils";
 import type { RouteModule } from "@/types";
 import { printRoutes } from "@/utils/express";
 import { initWebSocketRelay } from "@/websocket/index";
-import { getSessionStats } from "@/websocket/sessions";
+import { getActiveHostSessions, getSessionStats } from "@/websocket/sessions";
 
 process.on("uncaughtException", (err) => {
 	logger.error("Uncaught exception:", err);
@@ -137,9 +138,20 @@ app.use((_req, res) => {
 const server = createServer(app);
 initWebSocketRelay(server);
 initNotices();
+startHostHeartbeatForPosthog(() =>
+	getActiveHostSessions().map((session) => session.hostInfo),
+);
 
 server.listen(env.PORT, env.HOST, () => {
 	logger.info(`Server is running on port ${env.PORT}`);
 });
+
+for (const signal of ["SIGTERM", "SIGINT"] as const) {
+	process.on(signal, () => {
+		logger.info(`Received ${signal}, shutting down`);
+		server.close();
+		shutdownPostHog().finally(() => process.exit(0));
+	});
+}
 
 printRoutes(app, routes);

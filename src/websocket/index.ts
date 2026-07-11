@@ -1,7 +1,10 @@
 import type http from "node:http";
 import type { Duplex } from "node:stream";
 
-import { type ClientInfo, ClientInfoRequestSchema } from "@shellular/protocol";
+import {
+	type ClientInfoRequest,
+	ClientInfoRequestSchema,
+} from "@shellular/protocol";
 import { z } from "zod";
 
 import {
@@ -13,6 +16,7 @@ import { getHost } from "@/db/host";
 import { recordUserConnectionHistory } from "@/db/user-history";
 import { env } from "@/env";
 import { logger } from "@/logger";
+import { captureAppConnection, captureLegacyAppConnection } from "@/posthog";
 import { getActiveSessionForHost, joinSession } from "./sessions";
 import { CloseCodeAndReason, closeWsWithError } from "./shared";
 import { initAppWebSocket, requestClientApprovalFromHost } from "./ws-app";
@@ -31,8 +35,8 @@ const AppAuthQuerySchema = z
 type AppConnectionAuth =
 	| { clientInfo: AppWebSocketTokenPayload; userId: string; legacy: false }
 	// Legacy clients predate the wsToken handshake, so no identity was ever
-	// proven for them; `clientInfo.user` is correspondingly absent.
-	| { clientInfo: ClientInfo; userId: null; legacy: true };
+	// proven for them
+	| { clientInfo: ClientInfoRequest; userId: null; legacy: true };
 
 const cliWsServer = initCliWebSocket();
 const appWsServer = initAppWebSocket();
@@ -156,6 +160,9 @@ async function handleUpgradeRequest(
 
 			if (auth.userId) {
 				recordUserConnectionHistory(auth.userId, clientInfo);
+				captureAppConnection(auth.userId, clientInfo, host.platform);
+			} else {
+				captureLegacyAppConnection(clientInfo, host.platform);
 			}
 			appWsServer.emit("connection", ws, request);
 		});

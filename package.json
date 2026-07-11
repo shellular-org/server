@@ -24,6 +24,7 @@
 		"express": "^5.2.1",
 		"express-rate-limit": "^8.5.2",
 		"nanoid": "^5.1.7",
+		"posthog-node": "^5.40.0",
 		"ws": "^8.21.0",
 		"zod": "^4.3.6"
 	},
