@@ -1,6 +1,9 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
-import { type ClientInfo, ClientInfoSchema } from "@shellular/protocol";
+import {
+	type AuthedClientInfo,
+	AuthedClientInfoSchema,
+} from "@shellular/protocol";
 import { z } from "zod";
 
 import { env } from "@/env";
@@ -12,8 +15,10 @@ const TOKEN_HEADER = { alg: "HS256", typ: "JWT" };
 // to the short TTL.
 const TOKEN_SECRET = env.WS_TOKEN_SECRET;
 
-const AppWebSocketTokenPayloadSchema = ClientInfoSchema.extend({
-	userId: z.string().min(1),
+// The authenticated account rides along inside `user` (see AuthedClientInfo)
+// rather than as a sibling `userId` claim, so the identity the CLI is shown is
+// the same one the token was signed for — they cannot drift apart.
+const AppWebSocketTokenPayloadSchema = AuthedClientInfoSchema.extend({
 	iat: z.number().int(),
 	exp: z.number().int(),
 	jti: z.string().min(1),
@@ -23,14 +28,10 @@ export type AppWebSocketTokenPayload = z.infer<
 	typeof AppWebSocketTokenPayloadSchema
 >;
 
-export function createAppWebSocketToken(
-	userId: string,
-	clientInfo: ClientInfo,
-): string {
+export function createAppWebSocketToken(clientInfo: AuthedClientInfo): string {
 	const iat = Math.floor(Date.now() / 1000);
 	const payload: AppWebSocketTokenPayload = {
 		...clientInfo,
-		userId,
 		iat,
 		exp: iat + APP_WEBSOCKET_TOKEN_TTL_SECONDS,
 		jti: randomBytes(16).toString("base64url"),

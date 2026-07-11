@@ -1,4 +1,8 @@
-import { type ClientInfo, ClientInfoSchema } from "@shellular/protocol";
+import {
+	type AuthedClientInfo,
+	type ClientInfoRequest,
+	ClientInfoRequestSchema,
+} from "@shellular/protocol";
 import express, { Router } from "express";
 import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
@@ -232,8 +236,10 @@ router.get("/history", (req, res) => {
 
 router.post("/ws-app-token", (req, res) => {
 	const user = requireAuthUser(req);
-	const requestedClientInfo = ClientInfoSchema.parse(req.body);
-	const clientInfo = effectiveClientInfo(user.id, requestedClientInfo);
+	// Parsed with the request schema, which omits `user`: identity is asserted by
+	// the session, not by the caller's payload.
+	const requestedClientInfo = ClientInfoRequestSchema.parse(req.body);
+	const clientInfo = effectiveClientInfo(user, requestedClientInfo);
 
 	if (!getHost(clientInfo.hostId)) {
 		throw new BadRequestError("Host is not available.");
@@ -251,7 +257,7 @@ router.post("/ws-app-token", (req, res) => {
 	res.json({
 		success: true,
 		data: {
-			wsToken: createAppWebSocketToken(user.id, clientInfo),
+			wsToken: createAppWebSocketToken(clientInfo),
 			expiresIn: APP_WEBSOCKET_TOKEN_TTL_SECONDS,
 			clientId: clientInfo.clientId,
 		},
@@ -300,21 +306,25 @@ function getBearerToken(req: express.Request): string | null {
 	return header.slice("Bearer ".length).trim() || null;
 }
 
+/**
+ * Binds the authenticated account to the client's self-reported device info.
+ * `user` is always taken from the session, so a spoofed value in the request
+ * body cannot reach the websocket token or the CLI's approval prompt.
+ */
 function effectiveClientInfo(
-	userId: string,
-	clientInfo: ClientInfo,
-): ClientInfo {
-	if (!isBrowserClientInfo(clientInfo)) {
-		return clientInfo;
-	}
-
+	user: AuthUser,
+	clientInfo: ClientInfoRequest,
+): AuthedClientInfo {
 	return {
 		...clientInfo,
-		clientId: userId,
+		// Browser clients have no stable per-install id, so the account id doubles
+		// as the client id — one browser client per user.
+		clientId: isBrowserClientInfo(clientInfo) ? user.id : clientInfo.clientId,
+		user: { id: user.id, email: user.email },
 	};
 }
 
-function isBrowserClientInfo(clientInfo: ClientInfo): boolean {
+function isBrowserClientInfo(clientInfo: ClientInfoRequest): boolean {
 	return clientInfo.platform === "browser";
 }
 

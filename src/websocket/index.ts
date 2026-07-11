@@ -1,7 +1,7 @@
 import type http from "node:http";
 import type { Duplex } from "node:stream";
 
-import { type ClientInfo, ClientInfoSchema } from "@shellular/protocol";
+import { type ClientInfo, ClientInfoRequestSchema } from "@shellular/protocol";
 import { z } from "zod";
 
 import {
@@ -30,6 +30,8 @@ const AppAuthQuerySchema = z
 
 type AppConnectionAuth =
 	| { clientInfo: AppWebSocketTokenPayload; userId: string; legacy: false }
+	// Legacy clients predate the wsToken handshake, so no identity was ever
+	// proven for them; `clientInfo.user` is correspondingly absent.
 	| { clientInfo: ClientInfo; userId: null; legacy: true };
 
 const cliWsServer = initCliWebSocket();
@@ -179,10 +181,12 @@ function parseAppConnectionAuth(
 			return null;
 		}
 
-		return { clientInfo, userId: clientInfo.userId, legacy: false };
+		return { clientInfo, userId: clientInfo.user.id, legacy: false };
 	}
 
-	const legacyParsed = ClientInfoSchema.safeParse(query);
+	// Legacy path: identity is unproven, so strip any `user` a caller tried to
+	// smuggle in through the query string rather than forwarding it to the CLI.
+	const legacyParsed = ClientInfoRequestSchema.safeParse(query);
 	if (!legacyParsed.success) return null;
 	if (legacyParsed.data.platform === "browser") {
 		logger.warn("Rejecting legacy browser websocket without wsToken");
