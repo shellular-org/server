@@ -37,4 +37,3 @@ if (isLeader) {
 		`📀⏭️ Skipping initialization SQL on non-leader instance (NODE_APP_INSTANCE=${pm2Instance})`,
 	);
 }
-
