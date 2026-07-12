@@ -6,7 +6,16 @@ dotenv.config();
 const envSchema = z.object({
 	HOST: z.string().default("0.0.0.0"),
 	PORT: z.string().transform(Number).default(6969),
-	CORS_ORIGIN: z.string().min(1).default("*"),
+	CORS_ORIGIN: z
+		.string()
+		.min(1)
+		.default("https://app.shellular.dev, shellular://, shellular://localhost")
+		.transform((val) =>
+			val
+				.split(",")
+				.map((s) => s.trim())
+				.filter(Boolean),
+		),
 	NODE_ENV: z.enum(["dev", "prod"]),
 	CONTACT_EMAIL: z.email().default("team@shellular.dev"),
 	WS_TOKEN_SECRET: z.string().min(32),
@@ -24,6 +33,8 @@ const envSchema = z.object({
 });
 
 export const env = envSchema.parse(process.env);
+
+console.log(env.CORS_ORIGIN);
 
 // using console.log instead of local logger to ensure we don't import any local modules in this file
 const nodeEnvLog = `--- NODE_ENV: ${env.NODE_ENV} ---`;

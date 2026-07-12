@@ -6,7 +6,7 @@
 	"scripts": {
 		"dev": "NODE_ENV=dev tsx --watch src/main.ts",
 		"build": "tsc",
-		"format": "pnpx @biomejs/biome check --write src",
+		"format": "pnpx @biomejs/biome check --write",
 		"start": "NODE_ENV=prod tsx src/main.ts",
 		"notices": "tsx scripts/notices.ts",
 		"pm2-start": "pm2 start --name api.shellular.dev pnpm run start"
@@ -29,8 +29,9 @@
 		"zod": "^4.3.6"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.4.11",
+		"@biomejs/biome": "^2.5.3",
 		"@types/better-sqlite3": "^7.6.13",
+		"@types/cors": "^2.8.19",
 		"@types/express": "^5.0.6",
 		"@types/ws": "^8.18.1",
 		"tsx": "^4.21.0",
