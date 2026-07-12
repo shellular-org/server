@@ -13,7 +13,6 @@ import {
 } from "@/auth/ws-app-ticket";
 import { getClient, verifyClient } from "@/db/client";
 import { getHost } from "@/db/host";
-import { recordUserConnectionHistory } from "@/db/user-history";
 import { env } from "@/env";
 import { logger } from "@/logger";
 import { captureAppConnection, captureLegacyAppConnection } from "@/posthog";
@@ -159,7 +158,6 @@ async function handleUpgradeRequest(
 			}
 
 			if (auth.userId) {
-				recordUserConnectionHistory(auth.userId, clientInfo);
 				captureAppConnection(auth.userId, clientInfo, host.platform);
 			} else {
 				captureLegacyAppConnection(clientInfo, host.platform);

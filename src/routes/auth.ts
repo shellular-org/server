@@ -39,7 +39,6 @@ import {
 } from "@/auth/ws-app-ticket";
 import { getClient, verifyClient } from "@/db/client";
 import { getHost } from "@/db/host";
-import { listUserConnectionHistory } from "@/db/user-history";
 import { env } from "@/env";
 import { BadRequestError, ConflictError, ForbiddenError } from "@/error/http";
 
@@ -224,14 +223,6 @@ router.post("/refresh", authLimiter, (req, res) => {
 router.get("/me", (req, res) => {
 	const user = requireAuthUser(req);
 	res.json({ success: true, data: { user: authUserResponse(req, user) } });
-});
-
-router.get("/history", (req, res) => {
-	const user = requireAuthUser(req);
-	res.json({
-		success: true,
-		data: { history: listUserConnectionHistory(user.id) },
-	});
 });
 
 router.post("/ws-app-token", (req, res) => {
