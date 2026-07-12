@@ -51,6 +51,8 @@ CREATE INDEX IF NOT EXISTS idx_oauth_accounts_userId ON oauth_accounts (userId);
 
 CREATE INDEX IF NOT EXISTS idx_oauth_accounts_email ON oauth_accounts (email);
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_oauth_accounts_user_provider ON oauth_accounts (userId, provider);
+
 CREATE TABLE IF NOT EXISTS oauth_login_states (
     stateHash TEXT PRIMARY KEY,
     provider TEXT NOT NULL,
