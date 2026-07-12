@@ -51,10 +51,6 @@ The app no longer sends access tokens or device metadata in the `/app` WebSocket
 
 The `/cli` WebSocket and `/host/register` flow are unchanged.
 
-## User History
-
-Successful app joins are recorded in `user_connection_history` for read-only account history. `GET /auth/history` returns the authenticated user's host and device history for display in the app. This data is intended for visibility, history, and analytics only; it is not used for host sync or E2EE key sync.
-
 ## App Notices
 
 Short, dismiss-once messages shown as a popup on the app home screen (e.g. maintenance heads-ups). Notices are served from a plain JSON file so they can be pushed to already-installed apps without an app update.
