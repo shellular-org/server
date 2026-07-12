@@ -4,9 +4,28 @@
 import type express from "express";
 
 import { logger } from "@/logger";
+import type { RouteModule } from "@/types";
 
-// Function to print all registered routes in a pretty format
-export function printRoutes(app: ReturnType<typeof express>): void {
+function joinPaths(prefix: string, path: string): string {
+	if (!prefix) return path;
+	if (path === "/") return prefix;
+	return `${prefix}${path}`;
+}
+
+/**
+ * Function to print all registered routes in a pretty format.
+ * @param app - The Express application instance.
+ * @param routes - The route modules mounted on the app. Explicitly Needed because prefix info is not available against a router.
+ */
+export function printRoutes(
+	app: ReturnType<typeof express>,
+	routes: readonly RouteModule[] = [],
+): void {
+	const prefixByRouter = new Map<unknown, string>();
+	for (const { router, prefix } of routes) {
+		prefixByRouter.set(router, prefix);
+	}
+
 	logger.info("Registered Routes:");
 	logger.info("─".repeat(60));
 
@@ -28,7 +47,10 @@ export function printRoutes(app: ReturnType<typeof express>): void {
 			}
 			routeMap.get(path)!.push(...methods);
 		} else if (middleware.name === "router") {
-			// Routes from mounted routers
+			// Routes from mounted routers. Routers mounted at the root have no
+			// prefix, so they fall back to "".
+			const prefix = prefixByRouter.get(middleware.handle) ?? "";
+
 			(middleware.handle as any).stack.forEach((handler: any) => {
 				if (handler.route) {
 					const methods = Object.keys(handler.route.methods)
@@ -39,7 +61,8 @@ export function printRoutes(app: ReturnType<typeof express>): void {
 						? handler.route.path
 						: [handler.route.path];
 
-					paths.forEach((path: string) => {
+					paths.forEach((routePath: string) => {
+						const path = joinPaths(prefix, routePath);
 						if (!routeMap.has(path)) {
 							routeMap.set(path, []);
 						}

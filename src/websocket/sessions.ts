@@ -87,6 +87,13 @@ export function joinSession(
 		info: clientInfo,
 	};
 
+	const existingClient = session.clients.get(clientInfo.clientId);
+	if (existingClient && existingClient.ws !== clientWs) {
+		socketToSession.delete(existingClient.ws);
+		const { code, reason } = CloseCodeAndReason.CLIENT_REPLACED;
+		existingClient.ws.close(code, reason);
+	}
+
 	connections.clients.add(clientInfo.clientId);
 	session.clients.set(clientInfo.clientId, clientInfoWithWs);
 	socketToSession.set(clientWs, {
@@ -115,6 +122,11 @@ export function removeClient(sessionId: string, clientId: string): void {
 
 export function getActiveSessionForHost(hostId: string): Session | null {
 	return sessionsByHostId.get(hostId) ?? null;
+}
+
+/** All currently-connected host sessions, for periodic sweeps (e.g. analytics). */
+export function getActiveHostSessions(): Session[] {
+	return [...sessionsByHostId.values()];
 }
 
 export function getSessionStats() {

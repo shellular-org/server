@@ -1,13 +1,21 @@
 import type http from "node:http";
 import type { Duplex } from "node:stream";
 
-import { ClientInfoSchema } from "@shellular/protocol";
+import {
+	type ClientInfoRequest,
+	ClientInfoRequestSchema,
+} from "@shellular/protocol";
 import { z } from "zod";
 
+import {
+	type AppWebSocketTokenPayload,
+	verifyAppWebSocketToken,
+} from "@/auth/ws-app-ticket";
 import { getClient, verifyClient } from "@/db/client";
 import { getHost } from "@/db/host";
 import { env } from "@/env";
 import { logger } from "@/logger";
+import { captureAppConnection, captureLegacyAppConnection } from "@/posthog";
 import { getActiveSessionForHost, joinSession } from "./sessions";
 import { CloseCodeAndReason, closeWsWithError } from "./shared";
 import { initAppWebSocket, requestClientApprovalFromHost } from "./ws-app";
@@ -16,6 +24,18 @@ import { initCliWebSocket } from "./ws-cli";
 const HostQuerySchema = z.object({
 	hostId: z.string(),
 });
+
+const AppAuthQuerySchema = z
+	.object({
+		wsToken: z.string().min(1),
+	})
+	.strict();
+
+type AppConnectionAuth =
+	| { clientInfo: AppWebSocketTokenPayload; userId: string; legacy: false }
+	// Legacy clients predate the wsToken handshake, so no identity was ever
+	// proven for them
+	| { clientInfo: ClientInfoRequest; userId: null; legacy: true };
 
 const cliWsServer = initCliWebSocket();
 const appWsServer = initAppWebSocket();
@@ -73,18 +93,19 @@ async function handleUpgradeRequest(
 			return;
 		}
 
+		const auth = parseAppConnectionAuth(query);
+		if (!auth) {
+			logger.warn("Rejecting app websocket: missing or invalid app auth query");
+			socket.write("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
+			socket.destroy();
+			return;
+		}
+
+		const { clientInfo } = auth;
+
 		// async approval before upgrade is fine
-		const parsed = ClientInfoSchema.safeParse(query);
-
 		appWsServer.handleUpgrade(request, socket, head, async (ws) => {
-			if (!parsed.success) {
-				const { code, reason } = CloseCodeAndReason.INVALID_QUERY;
-				logger.info("Rejecting app websocket: invalid query");
-				closeWsWithError(ws, code, reason);
-				return;
-			}
-
-			const { hostId } = parsed.data;
+			const { hostId } = clientInfo;
 			const host = getHost(hostId);
 			if (!host) {
 				logger.info(`Rejecting app websocket: host ${hostId} doesn't exist`);
@@ -93,10 +114,14 @@ async function handleUpgradeRequest(
 				return;
 			}
 
-			const existingClient = getClient(parsed.data.clientId);
-			if (existingClient && !verifyClient(parsed.data)) {
+			const existingClient = getClient(clientInfo.clientId);
+			if (
+				existingClient &&
+				clientInfo.platform !== "browser" &&
+				!verifyClient(clientInfo)
+			) {
 				logger.info(
-					`Rejecting app websocket: client verification failed for clientId=${parsed.data.clientId}`,
+					`Rejecting app websocket: client verification failed for clientId=${clientInfo.clientId}`,
 				);
 				const { code, reason } = CloseCodeAndReason.INVALID_QUERY;
 				closeWsWithError(ws, code, reason);
@@ -113,25 +138,30 @@ async function handleUpgradeRequest(
 				return;
 			}
 
-			const failure = await requestClientApprovalFromHost(session, parsed.data);
+			const failure = await requestClientApprovalFromHost(session, clientInfo);
 			if (failure) {
 				logger.info(
-					`Rejecting app websocket: approval denied for hostId=${hostId} clientId=${parsed.data.clientId} reason=${failure.reason}`,
+					`Rejecting app websocket: approval denied for hostId=${hostId} clientId=${clientInfo.clientId} reason=${failure.reason}`,
 				);
 				closeWsWithError(ws, failure.code, failure.reason);
 				return;
 			}
 
-			const joined = joinSession(session.id, ws, parsed.data);
+			const joined = joinSession(session.id, ws, clientInfo);
 			if (!joined) {
 				const { code, reason } = CloseCodeAndReason.SESSION_JOIN_FAILED;
 				logger.info(
-					`Rejecting app websocket: join failed for hostId=${hostId} clientId=${parsed.data.clientId}`,
+					`Rejecting app websocket: join failed for hostId=${hostId} clientId=${clientInfo.clientId}`,
 				);
 				closeWsWithError(ws, code, reason);
 				return;
 			}
 
+			if (auth.userId) {
+				captureAppConnection(auth.userId, clientInfo, host.platform);
+			} else {
+				captureLegacyAppConnection(clientInfo, host.platform);
+			}
 			appWsServer.emit("connection", ws, request);
 		});
 
@@ -141,6 +171,37 @@ async function handleUpgradeRequest(
 	// only unknown route gets hard rejected
 	socket.write("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
 	socket.destroy();
+}
+
+function parseAppConnectionAuth(
+	query: Record<string, string>,
+): AppConnectionAuth | null {
+	if ("wsToken" in query) {
+		const authParsed = AppAuthQuerySchema.safeParse(query);
+		if (!authParsed.success) return null;
+
+		const clientInfo = verifyAppWebSocketToken(authParsed.data.wsToken);
+		if (!clientInfo) {
+			logger.warn("Rejecting app websocket: invalid or expired wsToken");
+			return null;
+		}
+
+		return { clientInfo, userId: clientInfo.user.id, legacy: false };
+	}
+
+	// Legacy path: identity is unproven, so strip any `user` a caller tried to
+	// smuggle in through the query string rather than forwarding it to the CLI.
+	const legacyParsed = ClientInfoRequestSchema.safeParse(query);
+	if (!legacyParsed.success) return null;
+	if (legacyParsed.data.platform === "browser") {
+		logger.warn("Rejecting legacy browser websocket without wsToken");
+		return null;
+	}
+
+	logger.warn(
+		`Accepting legacy unauthenticated app websocket for clientId=${legacyParsed.data.clientId} hostId=${legacyParsed.data.hostId}`,
+	);
+	return { clientInfo: legacyParsed.data, userId: null, legacy: true };
 }
 
 const APP_PROTOCOL = "shellular:";

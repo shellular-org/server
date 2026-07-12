@@ -8,7 +8,13 @@ import { ForbiddenError, TooManyRequestsError } from "@/error/http";
 import { logger } from "@/logger";
 import { userAgentFilter } from "@/middleware/user-agent-filter";
 
-export const router = Router();
+const router = Router();
+const ROUTE_PREFIX = "/host";
+
+export default {
+	router,
+	prefix: ROUTE_PREFIX,
+};
 
 const registerLimiter = rateLimit({
 	windowMs: 24 * 60 * 60 * 1000, // 24 hours
@@ -49,7 +55,7 @@ const HostRegisterReqSchema = z.object({
 });
 
 router.post(
-	"/host/register",
+	"/register",
 	userAgentFilter([/^shellular\/\d+\.\d+\.\d+$/]),
 	registerLimiter,
 	(req, res) => {
