@@ -346,7 +346,6 @@ function appCallbackUrl(req: express.Request): string {
 		defaultScheme,
 		"shellular:",
 		"shellular-dev:",
-		"foxbiz:",
 	]);
 	if (!allowedSchemes.has(url.protocol)) {
 		throw new BadRequestError("Invalid app callback URL.");
