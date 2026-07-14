@@ -1,32 +1,107 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.5.3/schema.json",
-	"extends": ["../biome.json"],
-	"root": false,
-	"files": {
-		"ignoreUnknown": true,
-		"includes": ["src/**/*"]
-	},
-	"formatter": {
-		"enabled": true,
-		"indentStyle": "space"
-	},
-	"linter": {
-		"enabled": true,
-		"rules": {
-			"preset": "recommended"
-		}
-	},
-	"javascript": {
-		"formatter": {
-			"quoteStyle": "double"
-		}
-	},
-	"assist": {
-		"enabled": true,
-		"actions": {
-			"source": {
-				"organizeImports": "on"
-			}
-		}
-	}
+  "$schema": "https://biomejs.dev/schemas/2.5.3/schema.json",
+  "files": {
+    "ignoreUnknown": true,
+    "includes": ["central/**/*", "relay/**/*", "shared/**/*", "scripts/**/*"]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space"
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended"
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double"
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["shared/**/*"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "@central": "shared/ must not import central/ (it would leak central-only deps like the DB into the relay, which imports shared/).",
+                  "@relay": "shared/ must not import relay/ — shared is the common base, not a consumer of either side."
+                },
+                "patterns": [
+                  {
+                    "group": [
+                      "@central/*",
+                      "@relay/*",
+                      "**/central/*",
+                      "**/relay/*"
+                    ],
+                    "message": "shared/ must not import from central/ or relay/. Move the shared code into shared/, or invert the dependency."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["relay/**/*"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "@central": "relay/ must not import central/ — it owns no DB and must stay independent of central-only code. Use shared/ for anything both need."
+                },
+                "patterns": [
+                  {
+                    "group": ["@central/*", "**/central/*"],
+                    "message": "relay/ must not import from central/. Put anything both sides need in shared/."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["central/**/*"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "@relay": "central/ must not import relay/ — the relay is a separate process. Put shared code in shared/."
+                },
+                "patterns": [
+                  {
+                    "group": ["@relay/*", "**/relay/*"],
+                    "message": "central/ must not import from relay/. Put anything both sides need in shared/."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

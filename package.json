@@ -2,14 +2,20 @@
 	"name": "server",
 	"version": "1.0.0",
 	"description": "",
-	"main": "src/main.js",
+	"main": "central/main.ts",
 	"scripts": {
-		"dev": "NODE_ENV=dev tsx --watch src/main.ts",
-		"build": "tsc",
-		"format": "pnpx @biomejs/biome check --write",
-		"start": "NODE_ENV=prod tsx src/main.ts",
-		"notices": "tsx scripts/notices.ts",
-		"pm2-start": "pm2 start --name api.shellular.dev pnpm run start"
+		"dev": "concurrently -n central,relay -c blue,magenta \"pnpm run central:dev\" \"wait-on -t 30000 http-get://127.0.0.1:6969/health && pnpm run relay:dev\"",
+		"central:dev": "NODE_ENV=dev tsx --watch central/main.ts",
+		"central:start": "NODE_ENV=prod tsx central/main.ts",
+		"central:pm2:start": "pm2 start --name shellular-server-central pnpm -- run central:start",
+		"central:pm2:restart": "pm2 restart shellular-server-central",
+		"central:notices": "tsx scripts/notices.ts",
+		"relay:dev": "NODE_ENV=dev tsx --watch relay/main.ts",
+		"relay:start": "NODE_ENV=prod tsx relay/main.ts",
+		"relay:pm2:start": "pm2 start --name shellular-server-relay pnpm -- run relay:start",
+		"relay:pm2:restart": "pm2 restart shellular-server-relay",
+		"type-check": "tsc",
+		"format": "pnpx @biomejs/biome check --write"
 	},
 	"keywords": [],
 	"author": "",
@@ -23,6 +29,7 @@
 		"dotenv": "^17.4.1",
 		"express": "^5.2.1",
 		"express-rate-limit": "^8.5.2",
+		"jose": "^6.2.3",
 		"nanoid": "^5.1.7",
 		"posthog-node": "^5.40.0",
 		"ws": "^8.21.0",
@@ -34,8 +41,10 @@
 		"@types/cors": "^2.8.19",
 		"@types/express": "^5.0.6",
 		"@types/ws": "^8.18.1",
+		"concurrently": "^10.0.3",
 		"tsx": "^4.21.0",
-		"typescript": "^6.0.2"
+		"typescript": "^6.0.2",
+		"wait-on": "^9.0.10"
 	},
 	"optionalDependencies": {
 		"bufferutil": "^4.1.0"

@@ -9,7 +9,7 @@ Copy `.env.example` to `.env` and configure the provider credentials you want to
 Required base settings:
 
 - `NODE_ENV`: `dev` or `prod`.
-- `AUTH_PUBLIC_BASE_URL`: public server origin used for OAuth callback URLs, for example `https://api.shellular.dev`.
+- `AUTH_PUBLIC_BASE_URL`: public server origin used for OAuth callback URLs, for example `https://server.shellular.dev`.
 - `AUTH_APP_CALLBACK_URL`: app deep link used after OAuth completes, usually `shellular://auth-callback`.
 - `CORS_ORIGIN`: app/web origin allowed to call the API.
 
