@@ -113,7 +113,11 @@ async function handleCliUpgrade(
   // CLI picks a relay), so any relay accepts it. The APP ticket still carries a
   // region — central sets it from the host's presence — which the app path guards.
   cliWsServer.handleUpgrade(request, socket, head, (ws) => {
-    cliWsServer.emit("connection", ws, request);
+    // Pass the verified host identity as the 3rd `emit("connection")` arg
+    // (the ws library's documented auth pattern) so handleAuth can assert the
+    // CLI's SESSION_HOST frame matches the token — catching a buggy/malicious CLI
+    // that holds a valid token for host X but announces itself as host Y.
+    cliWsServer.emit("connection", ws, request, payload);
   });
 }
 

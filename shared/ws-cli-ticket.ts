@@ -6,10 +6,7 @@ import { createToken, verifyToken } from "./jwt";
  * How long a host/CLI ticket is valid. Unlike the app ticket (30s), the CLI holds
  * a long-lived WebSocket and the ticket is spent exactly once at connect time —
  * but the CLI may reconnect (network blips, relay failover), and re-minting on
- * every reconnect would add a central round-trip to the reconnect path. A
- * minutes-scale window lets a cached ticket cover a reconnect without another
- * `/relays/resolve`, while still bounding replay. The CLI refreshes via a fresh
- * `/relays/resolve` once the ticket is close to expiry.
+ * every reconnect would add a central round-trip to the reconnect path.
  */
 const CLI_WEBSOCKET_TOKEN_TTL_SECONDS = 600;
 
@@ -19,7 +16,7 @@ const CLI_WEBSOCKET_TOKEN_TTL_SECONDS = 600;
  * against the DB by the central server, after which it signs them here, so a regional
  * relay only has to check the signature.
  *
- * The CLI token is intentionally NOT region-bound: `/relays/resolve` mints it in
+ * The CLI token is intentionally NOT region-bound: central server mints it in
  * the same call that returns the relay list, before the CLI has probed and picked
  * a region, so any relay accepts it.
  */
