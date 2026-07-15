@@ -6,11 +6,13 @@ import {
 } from "@relay/sessions";
 import { logger } from "@shared/logger";
 import {
+  type AuthedClientInfo,
   BaseMsgSchema,
-  type ClientInfo,
   MsgType,
   type PongMsg,
   parseMessage,
+  ServerCloseCodeAndReason,
+  type ServerCloseCodeAndReasonValue,
   type SessionClientJoinedMsg,
   type SessionClientJoinMsg,
   type SessionJoinedMsg,
@@ -20,8 +22,6 @@ import { type WebSocket, WebSocketServer } from "ws";
 import { z } from "zod";
 import { type ClientToHostMsg, ClientToHostMsgSchema } from "./protocol";
 import {
-  CloseCodeAndReason,
-  type CloseCodeAndReasonValue,
   closeWsWithError,
   sendSessionErrorToClient,
   setupKeepAlive,
@@ -44,8 +44,8 @@ const pendingApprovals = new Map<string, PendingApproval>();
 
 export function requestClientApprovalFromHost(
   session: Session,
-  clientInfo: ClientInfo,
-): Promise<CloseCodeAndReasonValue | undefined> {
+  clientInfo: AuthedClientInfo,
+): Promise<ServerCloseCodeAndReasonValue | undefined> {
   const { clientId } = clientInfo;
 
   // If an earlier approval is still in flight for this clientId, cancel it.
@@ -69,7 +69,7 @@ export function requestClientApprovalFromHost(
   // previous tab/window knows it was preempted.
   const existingClient = session.clients.get(clientId);
   if (existingClient) {
-    const { code, reason } = CloseCodeAndReason.CLIENT_REPLACED;
+    const { code, reason } = ServerCloseCodeAndReason.CLIENT_REPLACED;
     logger.info(
       `Replacing existing app connection for clientId=${clientId} hostId=${session.hostId} (pendingApprovalEntry=${pendingApprovalEntry}) because a new connection was established with the same clientId`,
     );
@@ -88,7 +88,7 @@ export function requestClientApprovalFromHost(
       logger.info(
         `App join approval timed out for hostId=${session.hostId} clientId=${clientId}`,
       );
-      resolve(CloseCodeAndReason.SESSION_JOIN_FAILED);
+      resolve(ServerCloseCodeAndReason.SESSION_JOIN_FAILED);
     }, CLIENT_APPROVAL_TIMEOUT_MS);
 
     pendingApprovals.set(clientId, {
@@ -101,7 +101,7 @@ export function requestClientApprovalFromHost(
           logger.info(
             `App join approval rejected by host for hostId=${session.hostId} clientId=${clientId} reason=${approval.reason}`,
           );
-          resolve(CloseCodeAndReason.APPROVAL_DENIED);
+          resolve(ServerCloseCodeAndReason.APPROVAL_DENIED);
         }
       },
     });
@@ -117,7 +117,7 @@ export function requestClientApprovalFromHost(
       logger.info(
         `Failed to notify host about app join for hostId=${session.hostId} clientId=${clientId}`,
       );
-      resolve(CloseCodeAndReason.APPROVAL_DENIED);
+      resolve(ServerCloseCodeAndReason.APPROVAL_DENIED);
     }
   });
 }
@@ -159,7 +159,7 @@ export function resolvePendingClient(
 
 function notifyHostPendingClient(
   host: WebSocket,
-  clientInfo: ClientInfo,
+  clientInfo: AuthedClientInfo,
 ): void {
   const joinMsg: SessionClientJoinMsg = {
     type: MsgType.SESSION_CLIENT_JOIN,
@@ -178,7 +178,7 @@ export interface AppWebSocketHooks {
   /** Fired when a client (app) joins. Carries the full ClientInfo + the host's
    *  platform so the relay can report presence (uses `.clientId`) and capture
    *  analytics (needs user id, device, host platform). */
-  onClientJoined?: (clientInfo: ClientInfo, hostPlatform: string) => void;
+  onClientJoined?: (clientInfo: AuthedClientInfo, hostPlatform: string) => void;
   onClientLeft?: (clientId: string) => void;
 }
 
@@ -300,7 +300,7 @@ function sendJoinedHandshake(ws: WebSocket, session: Session): void {
 
 function notifyHostClientJoined(
   session: Session,
-  clientInfo: ClientInfo,
+  clientInfo: AuthedClientInfo,
 ): void {
   const clientJoinedMsg: SessionClientJoinedMsg = {
     type: MsgType.SESSION_CLIENT_JOINED,

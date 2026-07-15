@@ -37,8 +37,8 @@ import {
 import { createAppWebSocketToken } from "@shared/ws-app-ticket";
 import {
   type AuthedClientInfo,
-  type ClientInfoRequest,
-  ClientInfoRequestSchema,
+  type ClientInfo,
+  ClientInfoSchema,
 } from "@shellular/protocol";
 import express, { Router } from "express";
 import { rateLimit } from "express-rate-limit";
@@ -231,7 +231,7 @@ router.post("/ws-app-token", async (req, res) => {
   const user = requireAuthUser(req);
   // Parsed with the request schema, which omits `user`: identity is asserted by
   // the session, not by the caller's payload.
-  const requestedClientInfo = ClientInfoRequestSchema.parse(req.body);
+  const requestedClientInfo = ClientInfoSchema.parse(req.body);
   const clientInfo = effectiveClientInfo(user, requestedClientInfo);
 
   if (!getHost(clientInfo.hostId)) {
@@ -327,7 +327,7 @@ function getBearerToken(req: express.Request): string | null {
  */
 function effectiveClientInfo(
   user: AuthUser,
-  clientInfo: ClientInfoRequest,
+  clientInfo: ClientInfo,
 ): AuthedClientInfo {
   return {
     ...clientInfo,
@@ -338,7 +338,7 @@ function effectiveClientInfo(
   };
 }
 
-function isBrowserClientInfo(clientInfo: ClientInfoRequest): boolean {
+function isBrowserClientInfo(clientInfo: ClientInfo): boolean {
   return clientInfo.platform === "browser";
 }
 

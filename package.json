@@ -23,7 +23,7 @@
 	"type": "commonjs",
 	"dependencies": {
 		"@oslojs/encoding": "^1.1.0",
-		"@shellular/protocol": "^0.0.26",
+		"@shellular/protocol": "^0.0.27",
 		"arctic": "^3.7.0",
 		"better-sqlite3": "^12.10.0",
 		"dotenv": "^17.4.1",

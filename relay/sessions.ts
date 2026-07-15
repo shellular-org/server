@@ -1,8 +1,8 @@
-import { CloseCodeAndReason } from "@relay/websocket/shared";
 import {
-  type ClientInfo,
+  type AuthedClientInfo,
   type HostInfo,
   MsgType,
+  ServerCloseCodeAndReason,
   type SessionClientLeftMsg,
 } from "@shellular/protocol";
 import { nanoid } from "nanoid";
@@ -10,7 +10,7 @@ import type { WebSocket } from "ws";
 
 export interface ClientInfoWithWebSocket {
   ws: WebSocket;
-  info: ClientInfo;
+  info: AuthedClientInfo;
 }
 
 export type SocketRole = "host" | "client";
@@ -74,7 +74,7 @@ export function createSession(
 export function joinSession(
   sessionId: string,
   clientWs: WebSocket,
-  clientInfo: ClientInfo,
+  clientInfo: AuthedClientInfo,
 ): Session | null {
   const session = sessions.get(sessionId);
   if (!session?.host) {
@@ -89,7 +89,7 @@ export function joinSession(
   const existingClient = session.clients.get(clientInfo.clientId);
   if (existingClient && existingClient.ws !== clientWs) {
     socketToSession.delete(existingClient.ws);
-    const { code, reason } = CloseCodeAndReason.CLIENT_REPLACED;
+    const { code, reason } = ServerCloseCodeAndReason.CLIENT_REPLACED;
     existingClient.ws.close(code, reason);
   }
 
@@ -151,7 +151,7 @@ export function removeSocket(ws: WebSocket) {
     // Close all WS clients that with host disconnected code
     connections.hosts.delete(entry.session.hostId);
     for (const [, clientInfo] of entry.session.clients) {
-      const { code, reason } = CloseCodeAndReason.HOST_DISCONNECTED;
+      const { code, reason } = ServerCloseCodeAndReason.HOST_DISCONNECTED;
       clientInfo.ws.close(code, reason);
       socketToSession.delete(clientInfo.ws);
       connections.clients.delete(clientInfo.info.clientId);

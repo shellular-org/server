@@ -15,6 +15,7 @@ import {
   MsgType,
   type PongMsg,
   parseMessage,
+  ServerCloseCodeAndReason,
   SessionClientJoinResultMsgSchema,
   type SessionHostedMsg,
   type SessionHostMsg,
@@ -26,7 +27,6 @@ import { z } from "zod";
 import { resolvePendingClient } from "./app";
 import { type HostToClientMsg, HostToClientMsgSchema } from "./protocol";
 import {
-  CloseCodeAndReason,
   closeWsWithError,
   sendSessionErrorToClient,
   sendSessionErrorToHost,
@@ -120,7 +120,7 @@ export function initCliWebSocket(hooks: CliWebSocketHooks = {}) {
             hooks.onSessionCreated?.(session.hostInfo);
           } catch (err) {
             logger.error("Host authentication failed", err);
-            const { code, reason } = CloseCodeAndReason.HOST_AUTH_FAILED;
+            const { code, reason } = ServerCloseCodeAndReason.HOST_AUTH_FAILED;
             closeWsWithError(ws, code, reason);
             return;
           }

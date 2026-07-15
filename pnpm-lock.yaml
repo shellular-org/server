@@ -12,8 +12,8 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0
       '@shellular/protocol':
-        specifier: ^0.0.26
-        version: 0.0.26
+        specifier: ^0.0.27
+        version: 0.0.27
       arctic:
         specifier: ^3.7.0
         version: 3.7.0
@@ -341,8 +341,8 @@ packages:
   '@posthog/types@1.393.0':
     resolution: {integrity: sha512-vzWeEJZ7ERQhFRoQYaP5jzN1JvIu46UJyHXsuv+dTGW2r3sMgREOhNxXLZjmFHwZ8/FOHQoyqqQmXTCXZSfMSg==}
 
-  '@shellular/protocol@0.0.26':
-    resolution: {integrity: sha512-97HZ6fVVVr1BK8uxVQpzHRkDRL4uo2naThYoMDghJPmnMwgSzCElC0e8WzLS+7VW/2x+zlzSFyi67B/1PIkhuA==}
+  '@shellular/protocol@0.0.27':
+    resolution: {integrity: sha512-xxfd8WeV43UgEJCCPs4UHV/qcSPuUImCQJayZdvkbKeR5QLbESH04WlkJIfRMaFARZ57Wds2OWAwFnSkhbO+jg==}
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
@@ -1156,7 +1156,7 @@ snapshots:
 
   '@posthog/types@1.393.0': {}
 
-  '@shellular/protocol@0.0.26':
+  '@shellular/protocol@0.0.27':
     dependencies:
       '@agentclientprotocol/sdk': 0.26.0(zod@4.3.6)
       zod: 4.3.6

@@ -15,12 +15,15 @@ import {
   requestClientApprovalFromHost,
 } from "@relay/websocket/app";
 import { type CliWebSocketHooks, initCliWebSocket } from "@relay/websocket/cli";
-import { CloseCodeAndReason, closeWsWithError } from "@relay/websocket/shared";
+import { closeWsWithError } from "@relay/websocket/shared";
 import { logger } from "@shared/logger";
 import { verifyAppWebSocketToken } from "@shared/ws-app-ticket";
 import { verifyCliWebSocketToken } from "@shared/ws-cli-ticket";
 import { rejectUpgrade } from "@shared/ws-helpers";
-import type { AuthedClientInfo } from "@shellular/protocol";
+import {
+  type AuthedClientInfo,
+  ServerCloseCodeAndReason,
+} from "@shellular/protocol";
 import type { WebSocket } from "ws";
 import { z } from "zod";
 
@@ -104,8 +107,10 @@ async function handleCliUpgrade(
   // the connection handler attaches its listener and be lost.
   const payload = await verifyCliWebSocketToken(parsed.data.token);
   if (!payload) {
+    // 401, not 403: the token is missing/expired/invalid but the host itself may
+    // be fine — the CLI should mint a fresh token and retry rather than give up.
     logger.warn("Rejecting CLI websocket: invalid or expired host token");
-    rejectUpgrade(socket);
+    rejectUpgrade(socket, 401);
     return;
   }
 
@@ -156,7 +161,7 @@ async function attachApp(
     logger.info(
       `Rejecting app websocket: no active session for hostId=${clientInfo.hostId}`,
     );
-    const { code, reason } = CloseCodeAndReason.HOST_UNAVAILABLE;
+    const { code, reason } = ServerCloseCodeAndReason.HOST_UNAVAILABLE;
     closeWsWithError(ws, code, reason);
     return;
   }
@@ -172,7 +177,7 @@ async function attachApp(
 
   const joined = joinSession(session.id, ws, clientInfo);
   if (!joined) {
-    const { code, reason } = CloseCodeAndReason.SESSION_JOIN_FAILED;
+    const { code, reason } = ServerCloseCodeAndReason.SESSION_JOIN_FAILED;
     logger.info(
       `Rejecting app websocket: join failed for hostId=${clientInfo.hostId} clientId=${clientInfo.clientId}`,
     );
