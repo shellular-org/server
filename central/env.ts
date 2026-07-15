@@ -1,6 +1,7 @@
 import { sharedEnvSchema } from "@shared/env";
 import dotenv from "dotenv";
 import { z } from "zod";
+import path from "node:path";
 
 dotenv.config();
 
@@ -10,6 +11,10 @@ dotenv.config();
 const envSchema = sharedEnvSchema.extend({
   CENTRAL_HOST: z.string().default("0.0.0.0"),
   CENTRAL_PORT: z.string().transform(Number).default(6969),
+  DB_PATH: z
+    .string()
+    .default(path.join("data", "shellular.db"))
+    .transform((p) => path.resolve(p)),
   /**
    * Shared secret authenticating relay→central reports (self-registration and
    * host/client presence).
