@@ -1,7 +1,8 @@
+import path from "node:path";
+
 import { sharedEnvSchema } from "@shared/env";
 import dotenv from "dotenv";
 import { z } from "zod";
-import path from "node:path";
 
 dotenv.config();
 

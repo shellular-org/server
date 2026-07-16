@@ -135,6 +135,23 @@ export function getSessionStats() {
   };
 }
 
+/**
+ * Snapshot of everyone currently connected to THIS relay, for the presence
+ * `hello` to central. Central rebuilds its (in-memory) registry from this on every
+ * (re)connect — so a central restart, which wipes the registry, is repaired the
+ * moment each relay's presence socket reconnects, without waiting for hosts/clients
+ * to churn and re-report themselves individually.
+ */
+export function getPresenceSnapshot(): {
+  hostIds: string[];
+  clientIds: string[];
+} {
+  return {
+    hostIds: [...connections.hosts],
+    clientIds: [...connections.clients],
+  };
+}
+
 export function getSessionForSocket(ws: WebSocket) {
   return socketToSession.get(ws) ?? null;
 }

@@ -7,6 +7,7 @@ import {
 } from "@shared/relay-presence";
 import WebSocket from "ws";
 import { relayEnv } from "./env";
+import { getPresenceSnapshot } from "./sessions";
 
 /**
  * The relay's persistent presence WebSocket to central (`/relay`). This single
@@ -14,13 +15,15 @@ import { relayEnv } from "./env";
  * on close — no HTTP register/heartbeat) and the channel it reports host/client
  * presence over. Authenticated by the shared secret in the `x-relay-secret` header.
  *
- * It reconnects with backoff if it drops; on (re)connect it sends `hello` with the
- * relay's public URL so central knows which URL to route apps to. Presence sent
- * while disconnected is dropped (best-effort) — central re-derives on reconnect as
- * the relay re-reports, and any host/client on a dropped relay re-resolves anyway.
+ * It reconnects if it drops; on (re)connect it sends `hello` with the relay's
+ * public URL AND a full snapshot of the hosts/clients currently connected to
+ * it, so central can rebuild its in-memory registry (which a central restart
+ * wipes) without waiting for those CLIs/apps to reconnect. Presence *events* sent
+ * while disconnected are dropped (best-effort), but the snapshot on the next
+ * reconnect makes central whole again regardless.
  */
 
-const RECONNECT_DELAYS_MS = [2000, 4000, 8000, 16_000, 32_000];
+const RECONNECT_DELAYS_MS = [1_500];
 
 let ws: WebSocket | null = null;
 let closing = false;
@@ -51,9 +54,16 @@ function connect(): void {
     logger.info(
       `Relay ${relayEnv.RELAY_PUBLIC_URL} connected to ${relayEnv.CENTRAL_API_URL}`,
     );
+    // Announce identity AND current presence in one frame. If central just
+    // restarted (or this socket merely dropped and reconnected), this rebuilds its
+    // in-memory registry for us — every host/client already on this relay is
+    // re-registered immediately, no waiting for them to churn.
+    const { hostIds, clientIds } = getPresenceSnapshot();
     send({
       type: RelayPresenceMsgType.HELLO,
       publicUrl: relayEnv.RELAY_PUBLIC_URL,
+      hostIds,
+      clientIds,
     });
   });
 

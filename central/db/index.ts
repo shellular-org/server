@@ -32,5 +32,7 @@ if (isLeader) {
   const end = Date.now();
   logger.info(`📀✅ SQLite ready at ${env.DB_PATH} in ${end - start}ms`);
 } else {
-  logger.info(`📀⏭️ Skipping initialization SQL on non-leader instance (NODE_APP_INSTANCE=${pm2Instance})`);
+  logger.info(
+    `📀⏭️ Skipping initialization SQL on non-leader instance (NODE_APP_INSTANCE=${pm2Instance})`,
+  );
 }

@@ -29,6 +29,15 @@ const HelloMsgSchema = z.object({
   type: z.literal(RelayPresenceMsgType.HELLO),
   /** The relay's public URL — its identity/route in central's fleet. */
   publicUrl: z.string().min(1),
+  /**
+   * Full presence snapshot at (re)connect: every host/client currently connected
+   * to this relay. Central's registry is in-memory, so a central restart wipes it;
+   * the relays' own sockets survive that restart, and each one re-announces its live
+   * presence here so central rebuilds the `hostId/clientId → relayUrl` map without
+   * waiting for the underlying CLIs/apps to reconnect.
+   */
+  hostIds: z.array(z.string()),
+  clientIds: z.array(z.string()),
 });
 
 const HostOnlineMsgSchema = z.object({

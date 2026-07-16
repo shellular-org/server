@@ -21,16 +21,64 @@ const relayByClientId = new Map<string, string>();
 const relayToHostsIds = new Map<string, Set<string>>();
 const relayToClientIds = new Map<string, Set<string>>();
 
-/** Mark a relay live (its presence socket connected). */
-export function addLiveRelay(url: string): void {
+/**
+ * Mark a relay live and (re)seed its presence from the relay's `hello` snapshot.
+ * Called on every presence-socket (re)connect, so it must be idempotent AND repair
+ * a central restart: the relay tells us exactly who is on it right now, and that set
+ * is authoritative. We first clear any presence we still hold for this URL (stale
+ * entries from a previous socket) so the snapshot replaces rather than merges, then
+ * install the snapshot. An empty snapshot just seeds empty sets — /stats still lists
+ * the relay with 0 hosts/clients.
+ */
+export function addLiveRelay(
+  url: string,
+  snapshot: { hostIds: string[]; clientIds: string[] } = {
+    hostIds: [],
+    clientIds: [],
+  },
+): void {
   liveRelayUrls.add(url);
-  // Seed empty presence sets so /stats lists a freshly-connected relay even
-  // before any host/client has joined it.
-  if (!relayToHostsIds.has(url)) {
-    relayToHostsIds.set(url, new Set());
+
+  // Clear whatever presence we previously held for this exact URL. On a fresh
+  // connect there's nothing to clear; on a reconnect this drops now-stale mappings
+  // so the incoming snapshot is the sole source of truth for this relay.
+  dropRelayPresence(url);
+
+  relayToHostsIds.set(url, new Set<string>());
+  for (const hostId of snapshot.hostIds) {
+    // markHostOnline also detaches the host from any other relay it was mapped to,
+    // keeping the forward/reverse indexes consistent if it appears to have moved.
+    markHostOnline(hostId, url);
   }
-  if (!relayToClientIds.has(url)) {
-    relayToClientIds.set(url, new Set());
+
+  relayToClientIds.set(url, new Set<string>());
+  for (const clientId of snapshot.clientIds) {
+    markClientOnline(clientId, url);
+  }
+}
+
+/**
+ * Remove all host/client presence pointing at `relayUrl` (both indexes), without
+ * touching liveness. Shared by `dropRelay` (relay gone) and `addLiveRelay` (reseed
+ * on reconnect).
+ */
+function dropRelayPresence(relayUrl: string): void {
+  const hosts = relayToHostsIds.get(relayUrl);
+  if (hosts) {
+    for (const hostId of hosts) {
+      relayByHostId.delete(hostId);
+    }
+
+    relayToHostsIds.delete(relayUrl);
+  }
+
+  const clients = relayToClientIds.get(relayUrl);
+  if (clients) {
+    for (const clientId of clients) {
+      relayByClientId.delete(clientId);
+    }
+
+    relayToClientIds.delete(relayUrl);
   }
 }
 
@@ -123,24 +171,7 @@ export function markClientOffline(clientId: string): void {
  */
 export function dropRelay(relayUrl: string): void {
   liveRelayUrls.delete(relayUrl);
-
-  const hosts = relayToHostsIds.get(relayUrl);
-  if (hosts) {
-    for (const hostId of hosts) {
-      relayByHostId.delete(hostId);
-    }
-
-    relayToHostsIds.delete(relayUrl);
-  }
-
-  const clients = relayToClientIds.get(relayUrl);
-  if (clients) {
-    for (const clientId of clients) {
-      relayByClientId.delete(clientId);
-    }
-
-    relayToClientIds.delete(relayUrl);
-  }
+  dropRelayPresence(relayUrl);
 }
 
 /**

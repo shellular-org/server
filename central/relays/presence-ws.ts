@@ -71,8 +71,16 @@ export function initRelayPresenceWs(server: http.Server): void {
       switch (msg.type) {
         case RelayPresenceMsgType.HELLO:
           relayUrl = msg.publicUrl;
-          addLiveRelay(relayUrl);
-          logger.info(`Relay connected: ${relayUrl}`);
+          // Seed the registry from the relay's snapshot so a central restart is
+          // repaired immediately (all hosts/clients already on this relay are
+          // re-registered), not only as they later churn.
+          addLiveRelay(relayUrl, {
+            hostIds: msg.hostIds,
+            clientIds: msg.clientIds,
+          });
+          logger.info(
+            `Relay connected: ${relayUrl} (${msg.hostIds.length} hosts, ${msg.clientIds.length} clients)`,
+          );
           break;
         case RelayPresenceMsgType.HOST_ONLINE:
           if (!relayUrl) {
