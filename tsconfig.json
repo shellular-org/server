@@ -12,9 +12,17 @@
 		"noEmit": true,
 		"ignoreDeprecations": "6.0",
 		"paths": {
-			"@/*": ["./src/*"]
+			"@central/*": ["./central/*"],
+			"@relay/*": ["./relay/*"],
+			"@shared/*": ["./shared/*"]
 		}
 	},
-	"include": ["src/**/*", "scripts/**/*", "index.d.ts"],
+	"include": [
+		"central/**/*",
+		"relay/**/*",
+		"shared/**/*",
+		"scripts/**/*",
+		"index.d.ts"
+	],
 	"exclude": ["node_modules"]
 }

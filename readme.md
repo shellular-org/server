@@ -21,18 +21,41 @@ Create a local `.env` from `.env.example`. The server requires `WS_TOKEN_SECRET`
 
 OAuth provider settings live in `.env`. Apple Sign in with Apple uses `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, and `APPLE_KEY_ID`, and reads the private key from the ignored `apple_key.p8` file in the server directory.
 
-### Run (watch mode)
+### Architecture
+
+The server is two independently-deployed processes under one monorepo:
+
+- **central** (`central/`) — auth, DB (SQLite), token minting, the relay/presence registry, and HTTP routes. Runs no WebSocket relay.
+- **relay** (`relay/`) — a DB-free regional relay that verifies signed tokens and just relays messages between the CLI and app. Deploy one per region. The relay registers itself with central and reports presence and stats.
+
+Scripts are prefixed `central:` / `relay:` so it's always explicit which one you're running.
+
+### Dev
 
 ```bash
 pnpm run dev
 ```
 
-Server listens on `0.0.0.0:3000` by default.
+### Prod - under PM2
 
-### Run (one-shot)
+#### Central
 
 ```bash
-pnpm start
+# start (named "shellular-server-central")
+pnpm run central:pm2:start
+
+# restart
+pnpm run central:pm2:restart
+```
+
+#### Relay
+
+```bash
+# start (named "shellular-server-relay")
+pnpm run relay:pm2:start
+
+# restart
+pnpm run relay:pm2:restart
 ```
 
 ## OAuth Login
