@@ -5,7 +5,7 @@ export const ClientToHostMsgSchema = BaseMsgSchema.extend({});
 
 export const HostToClientMsgSchema = BaseMsgSchema.extend({
   /**
-   * Which client (app) to send this message to. The server will route it based on this `clientId`.
+   * Which client (app) to send this message to. The relay will route it based on this `clientId`.
    */
   clientId: z.string(),
 });

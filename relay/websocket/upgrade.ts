@@ -86,7 +86,7 @@ async function handleUpgradeRequest(
     return;
   }
 
-  rejectUpgrade(socket);
+  rejectUpgrade(socket, 403);
 }
 
 async function handleCliUpgrade(
@@ -97,7 +97,7 @@ async function handleCliUpgrade(
 ): Promise<void> {
   const parsed = HostTokenQuerySchema.safeParse(query);
   if (!parsed.success) {
-    rejectUpgrade(socket);
+    rejectUpgrade(socket, 403);
     return;
   }
 
@@ -135,14 +135,14 @@ async function handleAppUpgrade(
   const authParsed = AppAuthQuerySchema.safeParse(query);
   if (!authParsed.success) {
     logger.warn("Rejecting app websocket: missing or invalid wsToken");
-    rejectUpgrade(socket);
+    rejectUpgrade(socket, 403);
     return;
   }
 
   const clientInfo = await verifyAppWebSocketToken(authParsed.data.wsToken);
   if (!clientInfo) {
     logger.warn("Rejecting app websocket: invalid or expired wsToken");
-    rejectUpgrade(socket);
+    rejectUpgrade(socket, 403);
     return;
   }
 
