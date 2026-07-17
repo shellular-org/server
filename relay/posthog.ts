@@ -39,6 +39,8 @@ function capture(event: Parameters<PostHog["capture"]>[0]): void {
     return;
   }
 
+  event.properties = { ...event.properties, relay: relayEnv.RELAY_PUBLIC_URL };
+
   client.capture(event);
 }
 
