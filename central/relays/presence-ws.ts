@@ -45,7 +45,7 @@ export function initRelayPresenceWs(server: http.Server): void {
 
     if (request.headers[WS_AUTH_HEADER] !== env.RELAY_SECRET) {
       logger.warn("Rejecting relay presence WS: invalid relay secret");
-      rejectUpgrade(socket);
+      rejectUpgrade(socket, 403);
       return;
     }
 
