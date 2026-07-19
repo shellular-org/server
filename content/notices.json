@@ -1,10 +1,10 @@
 {
 	"notices": [
 		{
-			"id": "notice-XEngwS78El",
-			"title": "Keep the Shellular CLI updated",
-			"body": "Please update your Shellular CLI to v0.0.43 or later. Future updates can be done from the app while the CLI is running with `npx shellular start`.",
-			"createdAt": "2026-07-06T18:34:27.016Z"
+			"id": "notice-pLF7WshhEk",
+			"title": "Improved terminal performance",
+			"body": "We've added relay servers in the US and Europe to reduce latency, which means terminals will now be faster. Update to CLI >=0.0.47 and App >=0.0.36 to experience the improvement.",
+			"createdAt": "2026-07-19T05:50:43.903Z"
 		}
 	]
 }
