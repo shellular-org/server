@@ -28,7 +28,7 @@ const relayEnvSchema = sharedEnvSchema
     CENTRAL_API_URL: z.url(),
     /** Shared secret authenticating register + presence reports to central. */
     RELAY_SECRET: z.string().min(16),
-    POSTHOG_KEY: z.string().min(1).optional(),
+    POSTHOG_KEY: z.string().optional(),
     POSTHOG_HOST: z.url().default("https://us.i.posthog.com"),
   })
   .transform((env, ctx) => {

@@ -17,8 +17,7 @@ import { relayEnv } from "./env";
  * even with a key set, dev runs must not pollute DAU/retention with our own
  * testing. With no key, `posthog` stays null and every capture no-ops.
  */
-const analyticsEnabled =
-  relayEnv.POSTHOG_KEY !== undefined && relayEnv.NODE_ENV === "prod";
+const analyticsEnabled = relayEnv.POSTHOG_KEY && relayEnv.NODE_ENV === "prod";
 logger.info(
   `🐽 PostHog analytics ${analyticsEnabled ? "enabled 📊" : "disabled"}`,
 );

@@ -4,7 +4,7 @@
 	"description": "",
 	"main": "central/main.ts",
 	"scripts": {
-		"dev": "concurrently -n central,relay -c blue,magenta \"pnpm run central:dev\" \"wait-on -t 30000 http-get://127.0.0.1:6969/health && pnpm run relay:dev\"",
+		"dev": "concurrently -n central,relay -c blue,magenta \"pnpm run central:dev\" \"wait-on -t 30000 http-get://127.0.0.1:3000/health && pnpm run relay:dev\"",
 		"central:dev": "NODE_ENV=dev tsx --watch central/main.ts",
 		"central:start": "NODE_ENV=prod tsx central/main.ts",
 		"central:pm2:start": "pm2 start --name shellular-server-central pnpm -- run central:start",
